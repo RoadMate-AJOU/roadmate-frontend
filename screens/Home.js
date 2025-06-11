@@ -9,7 +9,7 @@ import {
   PermissionsAndroid,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Voice from '@react-native-voice/voice';
+//import Voice from '@react-native-voice/voice';
 
 const ENABLE_VOICE = false; // ⚠️ 실제 기기에서 음성 기능 테스트 시 true로 변경
 
@@ -81,6 +81,11 @@ export default function Home() {
         <Ionicons name="search" size={18} color="#FF5900" />
       </View>
 
+      <View style={styles.guideTextContainer}>
+        <Text style={styles.guideText}>마이크를 누르고 목적지를 검색해 주세요.</Text>
+        <Text style={styles.exampleText}>예) “서울역까지 가고 싶어”</Text>
+      </View>
+
       {/* 텍스트 + 마이크 */}
       <View style={styles.centerContent}>
         <TouchableOpacity
@@ -102,7 +107,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 60,
+    paddingTop: 100,
   },
   searchBox: {
     flexDirection: 'row',
@@ -112,18 +117,36 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     width: '80%',
+    height: '7%',
     alignSelf: 'center',
     marginBottom: 20,
   },
   input: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 20,
     color: '#FF5900',
+  },
+  guideTextContainer: {
+    marginTop: 70,
+    marginBottom: 30,
+    alignItems: 'center',
+  },
+  guideText: {
+    fontSize: 20,
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  exampleText: {
+    fontSize: 20,
+    color: '#444',
+    textAlign: 'center',
   },
   centerContent: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start', // 중앙이 아닌 위쪽 기준
+    paddingTop: 70,
   },
   micButton: {
     backgroundColor: '#FF5900',
