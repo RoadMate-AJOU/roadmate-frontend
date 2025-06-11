@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -10,33 +10,56 @@ const MOCK_DATA = [
     distance: '500 m',
     category: '슈퍼, 마트',
     address: '서울 마포구 신공덕동',
-    image: require('../assets/images/emart-logo.png'), // 로고 경로
+    image: require('../assets/images/emart-logo.png'),
   },
   {
-      id: '2',
-      name: '이마트 마포점',
-      distance: '500 m',
-      category: '슈퍼, 마트',
-      address: '서울 마포구 신공덕동',
-      image: require('../assets/images/emart-logo.png'), // 로고 경로
-    },
-    {
-        id: '3',
-        name: '이마트 마포점',
-        distance: '500 m',
-        category: '슈퍼, 마트',
-        address: '서울 마포구 신공덕동',
-        image: require('../assets/images/emart-logo.png'), // 로고 경로
-      },
+    id: '2',
+    name: '이마트 마포점',
+    distance: '500 m',
+    category: '슈퍼, 마트',
+    address: '서울 마포구 신공덕동',
+    image: require('../assets/images/emart-logo.png'),
+  },
   {
-      id: '4',
+    id: '3',
+    name: '이마트 마포점',
+    distance: '500 m',
+    category: '슈퍼, 마트',
+    address: '서울 마포구 신공덕동',
+    image: require('../assets/images/emart-logo.png'),
+  },
+  {
+    id: '4',
+    name: '이마트 마포점',
+    distance: '500 m',
+    category: '슈퍼, 마트',
+    address: '서울 마포구 신공덕동',
+    image: require('../assets/images/emart-logo.png'),
+  },
+  {
+      id: '5',
       name: '이마트 마포점',
       distance: '500 m',
       category: '슈퍼, 마트',
       address: '서울 마포구 신공덕동',
-      image: require('../assets/images/emart-logo.png'), // 로고 경로
+      image: require('../assets/images/emart-logo.png'),
     },
-
+  {
+      id: '6',
+      name: '이마트 마포점',
+      distance: '500 m',
+      category: '슈퍼, 마트',
+      address: '서울 마포구 신공덕동',
+      image: require('../assets/images/emart-logo.png'),
+    },
+  {
+      id: '7',
+      name: '이마트 마포점',
+      distance: '500 m',
+      category: '슈퍼, 마트',
+      address: '서울 마포구 신공덕동',
+      image: require('../assets/images/emart-logo.png'),
+    },
 ];
 
 export default function DestinationList() {
@@ -58,37 +81,44 @@ export default function DestinationList() {
   );
 
   return (
-    <FlatList
-      data={MOCK_DATA}
-      keyExtractor={(item) => item.id}
-      renderItem={renderItem}
-      contentContainerStyle={styles.list}
-      ListFooterComponent={
-            <TouchableOpacity style={styles.resetButton} onPress={() => router.replace('/(tabs)')}>
-              <Text style={styles.resetButtonText}>목적지 다시 설정할래요!</Text>
-            </TouchableOpacity>
-            }
-    />
+    <View style={styles.container}>
+      <FlatList
+        data={MOCK_DATA}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+      />
+      <TouchableOpacity style={styles.button} onPress={() => router.replace('/(tabs)')}>
+        <Text style={styles.buttonText}>목적지 다시 설정할래요!</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   list: {
-    padding: 16,
-    paddingTop: 80,
+    paddingTop: 100,
+    paddingHorizontal: 16,
+    paddingBottom: 100, // 버튼과 겹치지 않게 하단 여백 추가
   },
   card: {
     flexDirection: 'row',
     backgroundColor: '#F8F8F8',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 10,
+    marginBottom: 20,
   },
   logo: {
     width: 70,
     height: 70,
     borderRadius: 8,
-    marginRight: 14,
+    marginRight: 16,
   },
   info: {
     flex: 1,
@@ -102,11 +132,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   distance: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#999',
   },
   category: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#555',
     marginTop: 6,
   },
@@ -120,18 +150,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  resetButton: {
-    marginTop: 20,
-    marginBottom: 40,
+  button: {
+    position: 'absolute',
+    bottom: 30,
+    alignSelf: 'center',
     backgroundColor: '#FF5900',
+    paddingHorizontal: 32,
     paddingVertical: 14,
-    borderRadius: 25,
-    alignItems: 'center',
+    borderRadius: 30,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
-  resetButtonText: {
+  buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
 });
-
