@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "my-app",
-    "slug": "my-app",
+    "name": "roadmate",
+    "slug": "roadmate",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/roadmate_logo.png",
@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kangsubin.roadmate",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "음성 인식을 위해 마이크가 필요합니다."
+      }
     },
     "android": {
       "adaptiveIcon": {
