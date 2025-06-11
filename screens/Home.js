@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 //import Voice from '@react-native-voice/voice';
+import { router } from 'expo-router';
 
 const ENABLE_VOICE = false; // ⚠️ 실제 기기에서 음성 기능 테스트 시 true로 변경
 
@@ -58,6 +59,7 @@ export default function Home() {
     Voice.onSpeechResults = (event) => {
       if (event.value) {
         setRecognizedText(event.value[0]);
+        router.push('/destination');
       }
     };
     Voice.onSpeechEnd = () => setIsListening(false);
@@ -90,7 +92,11 @@ export default function Home() {
       <View style={styles.centerContent}>
         <TouchableOpacity
           style={[styles.micButton, isListening && styles.micButtonActive]}
-          onPress={isListening ? stopRecognizing : startRecognizing}
+          onPress={
+              ENABLE_VOICE
+                ? (isListening ? stopRecognizing : startRecognizing)
+                : () => router.push('/destination') // ✅ 음성 꺼진 경우 바로 이동
+            }
         >
           <Ionicons name="mic-outline" size={100} color="white" />
         </TouchableOpacity>
