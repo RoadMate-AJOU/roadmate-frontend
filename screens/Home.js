@@ -9,7 +9,7 @@ import {
   PermissionsAndroid,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-//import Voice from '@react-native-voice/voice';
+import Voice from '@react-native-voice/voice';
 import { router } from 'expo-router';
 
 const ENABLE_VOICE = false; // ⚠️ 실제 기기에서 음성 기능 테스트 시 true로 변경

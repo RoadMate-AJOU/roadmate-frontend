@@ -64,7 +64,7 @@ const MOCK_DATA = [
 
 export default function DestinationList() {
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={() => router.push('/map')}>
       <Image source={item.image} style={styles.logo} />
       <View style={styles.info}>
         <View style={styles.titleRow}>
@@ -77,7 +77,7 @@ export default function DestinationList() {
           <Text style={styles.address}>{item.address}</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
