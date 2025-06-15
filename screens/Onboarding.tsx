@@ -82,7 +82,7 @@ export default function OnboardingScreen() {
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('Signup')}
+        onPress={() => navigation.navigate('signup')}
       >
         <Text style={styles.buttonText}>회원가입하기</Text>
       </TouchableOpacity>

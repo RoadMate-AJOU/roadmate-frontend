@@ -14,6 +14,7 @@
 		A340D888120C28D43443A6F5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CD378E8AB2796D972E7B6829 /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		DB5B8983652E436FB2ADF17B /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 071E33170EC1495C84F02133 /* noop-file.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 		F11748442D0722820044C1D9 /* roadmate-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "roadmate-Bridging-Header.h"; path = "roadmate/roadmate-Bridging-Header.h"; sourceTree = "<group>"; };
 		F93BD24A346B37C6EF74F421 /* Pods-roadmate.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-roadmate.release.xcconfig"; path = "Target Support Files/Pods-roadmate/Pods-roadmate.release.xcconfig"; sourceTree = "<group>"; };
 		FE51E141DB6704F094D44B30 /* libPods-roadmate.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-roadmate.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		071E33170EC1495C84F02133 /* noop-file.swift */ = {isa = PBXFileReference; name = "noop-file.swift"; path = "roadmate/noop-file.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -54,6 +56,7 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
 				CD378E8AB2796D972E7B6829 /* PrivacyInfo.xcprivacy */,
+				071E33170EC1495C84F02133 /* noop-file.swift */,
 			);
 			name = roadmate;
 			sourceTree = "<group>";
@@ -322,6 +325,7 @@
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				00AD3EA80E4734F4A4B74CEB /* ExpoModulesProvider.swift in Sources */,
+				DB5B8983652E436FB2ADF17B /* noop-file.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -355,7 +359,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kangsubin.roadmate;
-				PRODUCT_NAME = roadmate;
+				PRODUCT_NAME = "roadmate";
 				SWIFT_OBJC_BRIDGING_HEADER = "roadmate/roadmate-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -386,7 +390,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kangsubin.roadmate;
-				PRODUCT_NAME = roadmate;
+				PRODUCT_NAME = "roadmate";
 				SWIFT_OBJC_BRIDGING_HEADER = "roadmate/roadmate-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
