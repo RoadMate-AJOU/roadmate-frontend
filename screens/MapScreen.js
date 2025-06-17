@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Alert } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
@@ -6,6 +5,19 @@ import MapView, { Polyline, Marker } from 'react-native-maps';
 const sampleRoute = require('../data/tmap_sample.json');
 const USE_TMAP_API = false;
 const TMAP_API_KEY = 'amzjmTA9k91qcTfEEuDzi22E2A222MBU12hioLCA';
+
+function haversine(a, b) {
+  const toRad = deg => (deg * Math.PI) / 180;
+  const R = 6371000; // meters
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const lat1 = toRad(a.latitude);
+  const lat2 = toRad(b.latitude);
+
+  const aVal = Math.sin(dLat/2)**2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
+  return R * c;
+}
 
 export default function MapScreen() {
   const [routeSegments, setRouteSegments] = useState([]);
@@ -66,7 +78,7 @@ export default function MapScreen() {
       });
 
       const json = await response.json();
-      const legs = json?.metaData?.plan?.itineraries?.[1]?.legs;
+      const legs = json?.metaData?.plan?.itineraries?.[0]?.legs;
       if (!legs) throw new Error('legs 없음');
       parseLegsToSegments(legs);
     } catch (error) {
@@ -86,42 +98,65 @@ export default function MapScreen() {
   const parseLegsToSegments = (legs) => {
     const parsed = legs.flatMap((leg) => {
       const mode = leg.mode;
-      const steps = leg.steps ?? [];
 
-      return steps.map((step) => {
-        const coords = step.linestring
-          ?.split(' ')
-          .map(pair => {
-            const [lon, lat] = pair.split(',');
-            const latNum = parseFloat(lat);
-            const lonNum = parseFloat(lon);
-            if (isNaN(latNum) || isNaN(lonNum)) return null;
-            return {
-              latitude: latNum,
-              longitude: lonNum,
-            };
-          })
-          .filter(coord => coord !== null) ?? [];
+      if (mode === 'WALK' && leg.steps) {
+        const mergedCoords = leg.steps.flatMap((step, stepIdx) => {
+          const coords = step.linestring
+            ?.split(' ')
+            .map(pair => {
+              const [lon, lat] = pair.split(',');
+              const latNum = parseFloat(lat);
+              const lonNum = parseFloat(lon);
+              if (isNaN(latNum) || isNaN(lonNum)) {
+                console.log(`❗ 잘못된 좌표 (WALK Step ${stepIdx}):`, pair);
+                return null;
+              }
+              return { latitude: latNum, longitude: lonNum };
+            })
+            .filter(coord => coord !== null);
 
-        return { mode, coords };
-      });
+          return coords || [];
+        });
+
+        console.log(`🚶‍♂️ WALK 구간 - 전체 점 개수: ${mergedCoords.length}`);
+        return [{ mode, coords: mergedCoords }];
+      }
+
+
+      if ((mode === 'SUBWAY' || mode === 'BUS') && leg.passStopList?.stationList) {
+        const coords = leg.passStopList.stationList.map((station, i) => {
+          const latNum = parseFloat(station.lat);
+          const lonNum = parseFloat(station.lon);
+          if (isNaN(latNum) || isNaN(lonNum)) {
+            console.log(`❗ 잘못된 정류장 좌표 (${mode} Station ${i}):`, station);
+            return null;
+          }
+          return { latitude: latNum, longitude: lonNum };
+        }).filter(coord => coord !== null);
+
+        console.log(`🚈 ${mode} 정류장 연결 - 점 개수: ${coords.length}`);
+
+        return [{ mode, coords }];
+      }
+
+      console.log(`⚠️ mode 처리 안됨: ${mode}`);
+      return [];
     });
 
-    setRouteSegments(parsed.filter(seg => seg.coords.length > 0));
+    setRouteSegments(parsed.filter(seg => seg.coords.length > 1));
   };
 
   const getColorByMode = (mode) => {
     switch (mode) {
-      case 'WALK': return '#999999';
-      case 'BUS': return '#FF5900';
-      case 'SUBWAY': return '#3b82f6';
-      default: return '#888888';
+      case 'WALK':
+        return '#999999';
+      case 'BUS':
+        return '#FF5900';
+      case 'SUBWAY':
+        return '#3b82f6';
+      default:
+        return '#888888';
     }
-  };
-
-  const SAMPLE_MARKER = {
-    latitude: 37.5004198786564,
-    longitude: 127.126936754911,
   };
 
   return (
@@ -132,19 +167,13 @@ export default function MapScreen() {
           style={styles.map}
           initialRegion={mapCenter}
         >
-          <Marker
-            coordinate={SAMPLE_MARKER}
-            title="샘플 마커"
-            description="지정한 위치입니다"
-            pinColor="blue"
-          />
-
           {routeSegments.map((segment, idx) => (
             <Polyline
               key={idx}
               coordinates={segment.coords}
               strokeColor={getColorByMode(segment.mode)}
               strokeWidth={segment.mode === 'WALK' ? 3 : 6}
+              lineDashPattern={segment.mode === 'WALK' ? [8, 6] : undefined}
             />
           ))}
 

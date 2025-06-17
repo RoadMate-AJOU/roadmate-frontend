@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   description: {
-    fontSize: 16,
+    fontSize: 20,
     textAlign: 'center',
     color: '#333',
     lineHeight: 24,
