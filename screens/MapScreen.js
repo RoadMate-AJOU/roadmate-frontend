@@ -1,28 +1,49 @@
+// MapScreen.js
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, Dimensions, Alert } from 'react-native';
+import { View, StyleSheet, Dimensions, Alert, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation, useLocalSearchParams } from 'expo-router';
+import { useLocation } from '../contexts/LocationContext';
+import * as Location from 'expo-location';
 
-const sampleRoute = require('../data/tmap_sample.json');
+const sampleRoute = require('../data/tmap_sample3.json');
 const USE_TMAP_API = false;
-const TMAP_API_KEY = 'amzjmTA9k91qcTfEEuDzi22E2A222MBU12hioLCA';
-
-function haversine(a, b) {
-  const toRad = deg => (deg * Math.PI) / 180;
-  const R = 6371000; // meters
-  const dLat = toRad(b.latitude - a.latitude);
-  const dLon = toRad(b.longitude - a.longitude);
-  const lat1 = toRad(a.latitude);
-  const lat2 = toRad(b.latitude);
-
-  const aVal = Math.sin(dLat/2)**2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon/2)**2;
-  const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
-  return R * c;
-}
 
 export default function MapScreen() {
   const [routeSegments, setRouteSegments] = useState([]);
   const [mapCenter, setMapCenter] = useState(null);
+  const [heading, setHeading] = useState(null);
+  const [micExpanded, setMicExpanded] = useState(false);
+
+  const micAnim = useRef(new Animated.Value(0)).current;
+  const micIconScale = useRef(new Animated.Value(1)).current;
   const mapRef = useRef(null);
+  const navigation = useNavigation();
+  const { location } = useLocation();
+  const { name } = useLocalSearchParams();
+
+  const window = Dimensions.get('window');
+
+  const micSize = micAnim.interpolate({ inputRange: [0, 1], outputRange: [88, 160] });
+  const micLeft = micAnim.interpolate({ inputRange: [0, 1], outputRange: [20, window.width / 2 - 80] });
+  const micTop = micAnim.interpolate({ inputRange: [0, 1], outputRange: [window.height - 118, window.height / 2 - 80] });
+  const micRadius = micAnim.interpolate({ inputRange: [0, 1], outputRange: [44, 80] });
+  const micOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    let headingSub;
+    const subscribeHeading = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        headingSub = await Location.watchHeadingAsync((data) => {
+          setHeading(data.trueHeading ?? data.magHeading);
+        });
+      }
+    };
+    subscribeHeading();
+    return () => headingSub && headingSub.remove();
+  }, []);
 
   useEffect(() => {
     if (USE_TMAP_API) {
@@ -57,33 +78,23 @@ export default function MapScreen() {
     }
   }, [routeSegments]);
 
-  const fetchTmapRouteFromAPI = async () => {
-    try {
-      const response = await fetch('https://apis.openapi.sk.com/transit/routes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          appKey: TMAP_API_KEY,
-        },
-        body: JSON.stringify({
-          startX: '126.926493082645',
-          startY: '37.6134436427887',
-          endX: '127.126936754911',
-          endY: '37.5004198786564',
-          count: 10,
-          lang: 0,
-          format: 'json',
-        }),
-      });
-
-      const json = await response.json();
-      const legs = json?.metaData?.plan?.itineraries?.[0]?.legs;
-      if (!legs) throw new Error('legs 없음');
-      parseLegsToSegments(legs);
-    } catch (error) {
-      Alert.alert('에러', error.message);
+  const interpolatePoints = (start, end, numPoints = 5) => {
+    const points = [];
+    for (let i = 1; i <= numPoints; i++) {
+      const lat = start.latitude + (end.latitude - start.latitude) * (i / (numPoints + 1));
+      const lon = start.longitude + (end.longitude - start.longitude) * (i / (numPoints + 1));
+      points.push({ latitude: lat, longitude: lon });
     }
+    return points;
+  };
+
+  const smoothPolyline = (coords) => {
+    const newCoords = [];
+    for (let i = 0; i < coords.length - 1; i++) {
+      newCoords.push(coords[i], ...interpolatePoints(coords[i], coords[i + 1], 4));
+    }
+    newCoords.push(coords[coords.length - 1]);
+    return newCoords;
   };
 
   const parseRouteFromLocalJSON = (json) => {
@@ -92,108 +103,161 @@ export default function MapScreen() {
       Alert.alert('로컬 데이터 오류', 'legs 데이터가 없습니다.');
       return;
     }
-    parseLegsToSegments(legs);
-  };
 
-  const parseLegsToSegments = (legs) => {
     const parsed = legs.flatMap((leg) => {
       const mode = leg.mode;
-
       if (mode === 'WALK' && leg.steps) {
-        const mergedCoords = leg.steps.flatMap((step, stepIdx) => {
+        const mergedCoords = leg.steps.flatMap((step) => {
           const coords = step.linestring
             ?.split(' ')
             .map(pair => {
               const [lon, lat] = pair.split(',');
               const latNum = parseFloat(lat);
               const lonNum = parseFloat(lon);
-              if (isNaN(latNum) || isNaN(lonNum)) {
-                console.log(`❗ 잘못된 좌표 (WALK Step ${stepIdx}):`, pair);
-                return null;
-              }
+              if (isNaN(latNum) || isNaN(lonNum)) return null;
               return { latitude: latNum, longitude: lonNum };
             })
             .filter(coord => coord !== null);
-
           return coords || [];
         });
-
-        console.log(`🚶‍♂️ WALK 구간 - 전체 점 개수: ${mergedCoords.length}`);
-        return [{ mode, coords: mergedCoords }];
+        return [{ mode, coords: smoothPolyline(mergedCoords) }];
       }
 
-
       if ((mode === 'SUBWAY' || mode === 'BUS') && leg.passStopList?.stationList) {
-        const coords = leg.passStopList.stationList.map((station, i) => {
+        const coords = leg.passStopList.stationList.map((station) => {
           const latNum = parseFloat(station.lat);
           const lonNum = parseFloat(station.lon);
-          if (isNaN(latNum) || isNaN(lonNum)) {
-            console.log(`❗ 잘못된 정류장 좌표 (${mode} Station ${i}):`, station);
-            return null;
-          }
+          if (isNaN(latNum) || isNaN(lonNum)) return null;
           return { latitude: latNum, longitude: lonNum };
         }).filter(coord => coord !== null);
-
-        console.log(`🚈 ${mode} 정류장 연결 - 점 개수: ${coords.length}`);
-
         return [{ mode, coords }];
       }
 
-      console.log(`⚠️ mode 처리 안됨: ${mode}`);
       return [];
     });
 
-    setRouteSegments(parsed.filter(seg => seg.coords.length > 1));
+    const connected = [];
+    for (let i = 0; i < parsed.length; i++) {
+      const current = parsed[i];
+      if (i > 0) {
+        const prev = parsed[i - 1];
+        const prevEnd = prev.coords[prev.coords.length - 1];
+        const currStart = current.coords[0];
+        const dist = Math.sqrt(
+          Math.pow(prevEnd.latitude - currStart.latitude, 2) +
+          Math.pow(prevEnd.longitude - currStart.longitude, 2)
+        );
+        if (dist > 0.00005) {
+          connected.push({ mode: 'WALK', coords: smoothPolyline([prevEnd, currStart]) });
+        }
+      }
+      connected.push(current);
+    }
+
+    setRouteSegments(connected.filter(seg => seg.coords.length > 1));
   };
 
   const getColorByMode = (mode) => {
     switch (mode) {
-      case 'WALK':
-        return '#999999';
-      case 'BUS':
-        return '#FF5900';
-      case 'SUBWAY':
-        return '#3b82f6';
-      default:
-        return '#888888';
+      case 'WALK': return '#999';
+      case 'BUS': return '#3b82f6';
+      case 'SUBWAY': return '#FF5900';
+      default: return '#888';
     }
+  };
+
+  const toggleMic = () => {
+    Animated.parallel([
+      Animated.timing(micAnim, {
+        toValue: micExpanded ? 0 : 1,
+        duration: 400,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: false,
+      }),
+      Animated.timing(micIconScale, {
+        toValue: micExpanded ? 1 : 1.8,
+        duration: 400,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: false,
+      })
+    ]).start();
+
+    if (!micExpanded) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(micOpacity, { toValue: 0.3, duration: 400, useNativeDriver: false }),
+          Animated.timing(micOpacity, { toValue: 1, duration: 400, useNativeDriver: false })
+        ])
+      ).start();
+    } else {
+      micOpacity.setValue(1);
+    }
+
+    setMicExpanded(!micExpanded);
   };
 
   return (
     <View style={styles.container}>
       {mapCenter && (
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={mapCenter}
-        >
-          {routeSegments.map((segment, idx) => (
-            <Polyline
-              key={idx}
-              coordinates={segment.coords}
-              strokeColor={getColorByMode(segment.mode)}
-              strokeWidth={segment.mode === 'WALK' ? 3 : 6}
-              lineDashPattern={segment.mode === 'WALK' ? [8, 6] : undefined}
-            />
-          ))}
+        <>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            initialRegion={mapCenter}
+            showsUserLocation={false}
+          >
+            {routeSegments.map((segment, idx) => (
+              <Polyline
+                key={idx}
+                coordinates={segment.coords}
+                strokeColor={getColorByMode(segment.mode)}
+                strokeWidth={segment.mode === 'WALK' ? 3 : 6}
+                lineDashPattern={segment.mode === 'WALK' ? [8, 6] : undefined}
+              />
+            ))}
 
-          {routeSegments.length > 0 && (
-            <>
-              <Marker
-                coordinate={routeSegments[0].coords[0]}
-                title="출발지"
-                pinColor="green"
-              />
-              <Marker
-                coordinate={
-                  routeSegments[routeSegments.length - 1].coords.slice(-1)[0]
-                }
-                title="도착지"
-                pinColor="red"
-              />
-            </>
-          )}
-        </MapView>
+            {location && (
+              <Marker coordinate={location} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.currentLocationMarker} />
+              </Marker>
+            )}
+
+            {routeSegments.length > 0 && (
+              <>
+                <Marker coordinate={routeSegments[0].coords[0]} title="출발지" pinColor="green" />
+                <Marker coordinate={routeSegments[routeSegments.length - 1].coords.slice(-1)[0]} title="도착지" pinColor="red" />
+              </>
+            )}
+          </MapView>
+
+          <View style={styles.headerBox}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={28} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.destination}>📍 {name || '목적지'}</Text>
+            <View style={{ flex: 1 }} />
+            <Text style={styles.eta}>도착 예정{"\n"}10:26</Text>
+          </View>
+
+          <View style={styles.instructionBox}>
+            <Text style={styles.instructionText}>🚶‍♂️ <Text style={{ color: '#FF3B30' }}>100m 직진 후 좌회전</Text></Text>
+          </View>
+
+          <Animated.View style={[styles.micButton, {
+            width: micSize,
+            height: micSize,
+            borderRadius: micRadius,
+            left: micLeft,
+            top: micTop,
+            opacity: micOpacity
+          }]}>
+            <TouchableOpacity onPress={toggleMic} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <Animated.View style={{ transform: [{ scale: micIconScale }] }}>
+                <Ionicons name="mic" size={50} color="white" />
+              </Animated.View>
+            </TouchableOpacity>
+          </Animated.View>
+        </>
       )}
     </View>
   );
@@ -204,5 +268,65 @@ const styles = StyleSheet.create({
   map: {
     width: Dimensions.get('window').width,
     height: Dimensions.get('window').height,
+  },
+  currentLocationMarker: {
+    width: 20,
+    height: 20,
+    backgroundColor: '#FF5900',
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: 'white',
+    shadowColor: '#FF5900',
+    shadowOpacity: 0.6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+  },
+  headerBox: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+    backgroundColor: '#FFF1E6',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: { marginRight: 10 },
+  destination: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FF5900',
+    flexShrink: 1,
+  },
+  eta: { fontSize: 16, textAlign: 'right', color: '#222' },
+  instructionBox: {
+    position: 'absolute',
+    top: 110,
+    left: 20,
+    right: 20,
+    backgroundColor: '#FFF1E6',
+    borderRadius: 12,
+    padding: 12,
+  },
+  instructionText: {
+    fontSize: 27,
+    fontWeight: 'bold',
+    color: '#FF3B30',
+    textAlign: 'center',
+  },
+  micButton: {
+    position: 'absolute',
+    backgroundColor: '#FF5900',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: 'white',
+    shadowColor: '#FF5900',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
   },
 });

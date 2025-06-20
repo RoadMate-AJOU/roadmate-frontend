@@ -1,71 +1,35 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Dimensions } from 'react-native';
+// DestinationList.js
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useLocation } from '../contexts/LocationContext';
 
-const MOCK_DATA = [
-  {
-    id: '1',
-    name: '이마트 마포점',
-    distance: '500 m',
-    category: '슈퍼, 마트',
-    address: '서울 마포구 신공덕동',
-    image: require('../assets/images/emart-logo.png'),
-  },
-  {
-    id: '2',
-    name: '이마트 마포점',
-    distance: '500 m',
-    category: '슈퍼, 마트',
-    address: '서울 마포구 신공덕동',
-    image: require('../assets/images/emart-logo.png'),
-  },
-  {
-    id: '3',
-    name: '이마트 마포점',
-    distance: '500 m',
-    category: '슈퍼, 마트',
-    address: '서울 마포구 신공덕동',
-    image: require('../assets/images/emart-logo.png'),
-  },
-  {
-    id: '4',
-    name: '이마트 마포점',
-    distance: '500 m',
-    category: '슈퍼, 마트',
-    address: '서울 마포구 신공덕동',
-    image: require('../assets/images/emart-logo.png'),
-  },
-  {
-      id: '5',
-      name: '이마트 마포점',
-      distance: '500 m',
-      category: '슈퍼, 마트',
-      address: '서울 마포구 신공덕동',
-      image: require('../assets/images/emart-logo.png'),
-    },
-  {
-      id: '6',
-      name: '이마트 마포점',
-      distance: '500 m',
-      category: '슈퍼, 마트',
-      address: '서울 마포구 신공덕동',
-      image: require('../assets/images/emart-logo.png'),
-    },
-  {
-      id: '7',
-      name: '이마트 마포점',
-      distance: '500 m',
-      category: '슈퍼, 마트',
-      address: '서울 마포구 신공덕동',
-      image: require('../assets/images/emart-logo.png'),
-    },
-];
+const samplePOI = require('../data/tmap_POI_sample.json');
 
 export default function DestinationList() {
+  const [poiList, setPoiList] = useState([]);
+  const { location } = useLocation();
+  const router = useRouter();
+
+  useEffect(() => {
+    const rawList = samplePOI?.searchPoiInfo?.pois?.poi ?? [];
+
+    const parsedList = rawList.map((poi, idx) => ({
+      id: `${poi.id}-${poi.navSeq}-${idx}`,
+      name: poi.name,
+      distance: '',
+      category: `${poi.upperBizName || ''}, ${poi.middleBizName || ''}`,
+      address: poi.newAddressList?.newAddress?.[0]?.fullAddressRoad || '주소 정보 없음',
+      lat: parseFloat(poi.frontLat),
+      lon: parseFloat(poi.frontLon),
+    }));
+
+    setPoiList(parsedList);
+  }, []);
+
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => router.push('/map')}>
-      <Image source={item.image} style={styles.logo} />
+    <TouchableOpacity style={styles.card} onPress={() => router.push({ pathname: '/map', params: { name: item.name } })}>
       <View style={styles.info}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>{item.name}</Text>
@@ -83,7 +47,7 @@ export default function DestinationList() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={MOCK_DATA}
+        data={poiList}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
@@ -105,20 +69,19 @@ const styles = StyleSheet.create({
   list: {
     paddingTop: 100,
     paddingHorizontal: 16,
-    paddingBottom: 100, // 버튼과 겹치지 않게 하단 여백 추가
+    paddingBottom: 100,
   },
   card: {
     flexDirection: 'row',
-    backgroundColor: '#F8F8F8',
+    backgroundColor: 'rgba(250, 129, 47, 0.1)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
-  },
-  logo: {
-    width: 70,
-    height: 70,
-    borderRadius: 8,
-    marginRight: 16,
+    shadowColor: '#FA812F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 2,
   },
   info: {
     flex: 1,
@@ -159,10 +122,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 30,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
   },
   buttonText: {
     color: '#fff',
