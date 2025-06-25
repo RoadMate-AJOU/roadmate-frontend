@@ -1,4 +1,3 @@
-// screens/OnboardingScreen.tsx
 import React, { useRef, useState } from 'react';
 import {
   View,
@@ -10,15 +9,7 @@ import {
   FlatList,
   ViewToken,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
-type RootStackParamList = {
-  Onboarding: undefined;
-  Signup: undefined;
-};
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
+import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -30,19 +21,19 @@ const slides = [
   },
   {
     id: '2',
-    image: require('../assets/images/fix2.png'), 
+    image: require('../assets/images/fix2.png'),
     description: "'서울역 가고 싶어요'\n말하면 버스, 지하철까지\n전부 알려드려요.",
   },
   {
     id: '3',
-    image: require('../assets/images/fix3.png'), 
+    image: require('../assets/images/fix3.png'),
     description: "안내 중에도\n'어디서 내리죠?' 물으면\n다시 말해드려요.",
   },
 ];
 
 export default function OnboardingScreen() {
-  const navigation = useNavigation<NavigationProp>();
   const [currentIndex, setCurrentIndex] = useState(0);
+
   const viewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0) {
       setCurrentIndex(Number(viewableItems[0].index));
@@ -57,6 +48,14 @@ export default function OnboardingScreen() {
       <Text style={styles.description}>{item.description}</Text>
     </View>
   );
+
+  const handleSignup = () => {
+    router.push('/signup'); // ✅ 파일 기반 라우팅
+  };
+
+  const handleGuest = () => {
+    router.replace('/(tabs)'); // ✅ 탭 그룹으로 이동
+  };
 
   return (
     <View style={styles.container}>
@@ -80,22 +79,21 @@ export default function OnboardingScreen() {
         ))}
       </View>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate('signup')}
-      >
-        <Text style={styles.buttonText}>회원가입하기</Text>
-      </TouchableOpacity>
+      <View style={styles.buttonRow}>
+        <TouchableOpacity style={styles.guestButton} onPress={handleGuest}>
+          <Text style={styles.buttonText}>게스트</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
+          <Text style={styles.buttonText}>회원가입</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
-// ✅ styles
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
   slide: {
     width,
     alignItems: 'center',
@@ -134,17 +132,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
     marginHorizontal: 4,
   },
-  button: {
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    gap: 12,
+    marginBottom: 40,
+  },
+  guestButton: {
+    flex: 1,
     backgroundColor: '#ff6600',
     paddingVertical: 14,
-    paddingHorizontal: 32,
     borderRadius: 8,
-    alignSelf: 'center',
-    marginBottom: 40,
+    marginRight: 6,
+    alignItems: 'center',
+  },
+  signupButton: {
+    flex: 1,
+    backgroundColor: '#ff6600',
+    paddingVertical: 14,
+    borderRadius: 8,
+    marginLeft: 6,
+    alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
   },
 });
