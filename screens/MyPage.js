@@ -1,7 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function MyPage() {
+  const router = useRouter();
+
+  const handleLogin = () => {
+    router.push('/signup'); // ✅ signup.js로 이동
+  };
+
   const handleLogout = () => {
     console.log('로그아웃');
     // TODO: 로그아웃 처리 로직 추가
@@ -21,6 +28,9 @@ export default function MyPage() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <Text style={styles.buttonText}>회원가입</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={handleLogout}>
         <Text style={styles.buttonText}>로그아웃</Text>
       </TouchableOpacity>

@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 
-const LocationContext = createContext(null);
+const LocationContext = createContext({ location: null, setLocation: () => {} });
 
 export const LocationProvider = ({ children }) => {
   const [location, setLocation] = useState(null);
@@ -21,7 +21,7 @@ export const LocationProvider = ({ children }) => {
   }, []);
 
   return (
-    <LocationContext.Provider value={{ location }}>
+    <LocationContext.Provider value={{ location, setLocation }}>
       {children}
     </LocationContext.Provider>
   );

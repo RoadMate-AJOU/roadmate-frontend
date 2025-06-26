@@ -1,11 +1,13 @@
+// app/signup.tsx
+
 import { router } from 'expo-router';
-import SignUpForm from '../screens/signup';
+import SignUpScreen, { FormState } from '../screens/signup'; // ✅ FormState 함께 import
 
 export default function SignUpPage() {
-  const handleSubmit = (data: { name: string; phone: string }) => {
+  const handleSubmit = (data: FormState) => {
     console.log('회원가입 완료:', data);
-    router.replace('/(tabs)'); // 가입 후 메인 탭으로 이동
+    router.replace('/(tabs)'); // 원하는 라우팅으로 이동
   };
 
-  return <SignUpForm onSubmit={handleSubmit} />;
+  return <SignUpScreen onSubmit={handleSubmit} />;
 }
