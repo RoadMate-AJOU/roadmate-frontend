@@ -8,9 +8,11 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   mapContainer: {
-    height: 250,
-    borderBottomWidth: 1,
-    borderColor: '#eee',
+    borderRadius: 16,              // 원하는 radius
+    overflow: 'hidden',            // radius가 적용되도록
+    marginHorizontal: 20,          // 양옆에 여백 추가
+    height: 200,                   // 높이는 디자인에 따라 조절
+    marginTop: 10,
   },
   map: {
     width: Dimensions.get('window').width,

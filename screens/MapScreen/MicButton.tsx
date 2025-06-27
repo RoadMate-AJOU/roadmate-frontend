@@ -12,10 +12,10 @@ export default function MicButton() {
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(1)).current;
 
-  const micSize = anim.interpolate({ inputRange: [0, 1], outputRange: [60, 160] });
-  const micLeft = anim.interpolate({ inputRange: [0, 1], outputRange: [window.width - 80, window.width / 2 - 80] });
-  const micTop = anim.interpolate({ inputRange: [0, 1], outputRange: [window.height - 160, window.height / 2 - 80] });
-  const micRadius = anim.interpolate({ inputRange: [0, 1], outputRange: [30, 80] });
+  const micSize = anim.interpolate({ inputRange: [0, 1], outputRange: [100, 160] });
+  const micLeft = anim.interpolate({ inputRange: [0, 1], outputRange: [window.width - 120, window.width / 2 - 80] });
+  const micTop = anim.interpolate({ inputRange: [0, 1], outputRange: [window.height - 180, window.height / 2 - 80] });
+  const micRadius = anim.interpolate({ inputRange: [0, 1], outputRange: [50, 80] });
 
   const toggleMic = () => {
     Animated.parallel([
@@ -48,28 +48,31 @@ export default function MicButton() {
   };
 
   return (
-    <Animated.View style={{
-      position: 'absolute',
-      backgroundColor: '#FF5900',
-      elevation: 6,
-      borderWidth: 2,
-      borderColor: 'white',
-      shadowColor: '#FF5900',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.4,
-      shadowRadius: 6,
-      width: micSize,
-      height: micSize,
-      borderRadius: micRadius,
-      left: micLeft,
-      top: micTop,
-      opacity: opacity,
-      justifyContent: 'center',
-      alignItems: 'center',
-    }}>
+    <Animated.View
+      style={{
+        position: 'absolute',
+        backgroundColor: '#FF5900',
+        elevation: expanded ? 6 : 0, // ✅ 확장 시에만 elevation
+        borderWidth: 2,
+        borderColor: 'white',
+        // ✅ 확장 시에만 shadow 스타일 적용
+        shadowColor: expanded ? '#FF5900' : 'transparent',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: expanded ? 1 : 0,
+        shadowRadius: 6,
+        width: micSize,
+        height: micSize,
+        borderRadius: micRadius,
+        left: micLeft,
+        top: micTop,
+        opacity: opacity,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
       <TouchableOpacity onPress={toggleMic}>
         <Animated.View style={{ transform: [{ scale }] }}>
-          <Ionicons name="mic" size={50} color="white" />
+          <Ionicons name="mic" size={68} color="white" />
         </Animated.View>
       </TouchableOpacity>
     </Animated.View>
