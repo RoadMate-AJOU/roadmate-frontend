@@ -1,14 +1,32 @@
-// InstructionBox.tsx
-// "100m 직진 후 좌회전" 안내 UI
+// screens/MapScreen/InstructionBox.tsx
 import React from 'react';
-import { View, Text } from 'react-native';
-import styles from './styles';
+import { View, Text, StyleSheet } from 'react-native';
 
-export default function InstructionBox() {
+interface InstructionBoxProps {
+  text: string;
+}
+
+export default function InstructionBox({ text }: InstructionBoxProps) {
   return (
-    <View style={styles.instructionBox}>
-      {/* 도보 중 실시간 안내 */}
-      <Text style={styles.instructionText}>🚶‍♂️ 100m 직진 후 좌회전</Text>
+    <View style={styles.box}>
+      <Text style={styles.text}>{text}</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  box: {
+    backgroundColor: '#FFFAF0',
+    borderColor: '#FF6A00',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    marginLeft: 10,
+  },
+  text: {
+    fontSize: 14,
+    color: '#333',
+  },
+});
