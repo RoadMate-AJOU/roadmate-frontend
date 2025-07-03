@@ -62,12 +62,21 @@ export default function Home() {
         router.push('/destination');
       }
     };
+
+    // ✅ 실시간 텍스트
+    Voice.onSpeechPartialResults = (event) => {
+      if (event.value) {
+        setRecognizedText(event.value[0]); // 말하는 중에도 텍스트 반영
+      }
+    };
+
     Voice.onSpeechEnd = () => setIsListening(false);
 
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
     };
   }, []);
+
 
   return (
     <View style={styles.container}>

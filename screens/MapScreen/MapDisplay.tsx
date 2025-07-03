@@ -1,24 +1,78 @@
 // MapDisplay.tsx
-// 지도 + 현재 위치 마커 + 경로 표시
+// 지도 + 현재 위치 마커 + 경로 표시 + 실시간 안내 텍스트
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useLocation } from '../../contexts/LocationContext';
 import styles from './styles';
 import MicButton from './MicButton';
+import InstructionBox from './InstructionBox';
 
-const sampleRoute = require('../../data/tmap_sample3.json');
+import sampleRoute from '../../constants/routeData';
 
 export default function MapDisplay() {
-  const { location } = useLocation();
+  const { location, setLocation } = useLocation();
   const [routeSegments, setRouteSegments] = useState([]);
+  const [currentWalkInstruction, setCurrentWalkInstruction] = useState('');
   const mapRef = useRef(null);
 
   useEffect(() => {
     parseRouteFromLocalJSON(sampleRoute);
   }, []);
 
-  // 경로 데이터 smoothing을 위한 보간 함수
+  useEffect(() => {
+    const coords = routeSegments.flatMap(seg => seg.coords);
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < coords.length) {
+        setLocation(coords[i]);
+        i++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [routeSegments]);
+
+  useEffect(() => {
+    if (!location || routeSegments.length === 0) return;
+
+    const legs = sampleRoute?.metaData?.plan?.itineraries?.[0]?.legs ?? [];
+    for (const leg of legs) {
+      if (leg.mode !== 'WALK') continue;
+
+      for (const step of leg.steps || []) {
+        const points = step.linestring?.split(' ').map((pair) => {
+          const [lon, lat] = pair.split(',').map(parseFloat);
+          return { latitude: lat, longitude: lon };
+        }) ?? [];
+
+        const match = points.some((pt) =>
+          getDistance(location.latitude, location.longitude, pt.latitude, pt.longitude) < 20
+        );
+
+        if (match) {
+          setCurrentWalkInstruction(step.description);
+          return;
+        }
+      }
+    }
+
+    setCurrentWalkInstruction('');
+  }, [location, routeSegments]);
+
+  const getDistance = (lat1, lon1, lat2, lon2) => {
+    const toRad = (v) => (v * Math.PI) / 180;
+    const R = 6371000;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
   const interpolatePoints = (start, end, numPoints = 5) => {
     const points = [];
     for (let i = 1; i <= numPoints; i++) {
@@ -38,7 +92,6 @@ export default function MapDisplay() {
     return newCoords;
   };
 
-  // 로컬 JSON 파일에서 경로 파싱
   const parseRouteFromLocalJSON = (json) => {
     const legs = json?.metaData?.plan?.itineraries?.[0]?.legs;
     if (!legs) {
@@ -69,7 +122,7 @@ export default function MapDisplay() {
           if (isNaN(latNum) || isNaN(lonNum)) return null;
           return { latitude: latNum, longitude: lonNum };
         }).filter(coord => coord !== null);
-        return [{ mode, coords }];
+        return [{ mode, coords: smoothPolyline(coords) }];
       }
 
       return [];
@@ -132,7 +185,6 @@ export default function MapDisplay() {
           </Marker>
         )}
 
-        {/* 경로 표시 */}
         {routeSegments.map((segment, idx) => (
           <Polyline
             key={idx}
@@ -143,7 +195,6 @@ export default function MapDisplay() {
           />
         ))}
 
-        {/* 출발지 / 도착지 마커 */}
         {routeSegments.length > 0 && (
           <>
             <Marker coordinate={routeSegments[0].coords[0]} title="출발지" pinColor="green" />
@@ -155,6 +206,15 @@ export default function MapDisplay() {
           </>
         )}
       </MapView>
+
+      {/* 안내 문구 */}
+      {Boolean(currentWalkInstruction?.trim()) && (
+        <InstructionBox mode="walk" text={currentWalkInstruction} />
+      )}
+
+
+
+      <MicButton />
     </View>
   );
 }

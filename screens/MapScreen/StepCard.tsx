@@ -1,16 +1,18 @@
 // screens/MapScreen/StepCard.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
 interface StepCardProps {
   type: 'walk' | 'bus' | 'subway';
   instruction: string;
+  highlighted?: boolean; // ✅ 강조 여부
 }
 
 const transportIcons = {
-  walk: '🚶',
-  bus: '🚌',
-  subway: '🚇',
+  walk: <Ionicons name="walk" size={24} color="#FF6A00" />,
+  bus: <MaterialIcons name="directions-bus" size={24} color="#FF6A00" />,
+  subway: <FontAwesome5 name="subway" size={22} color="#FF6A00" />,
 };
 
 const transportLabels = {
@@ -19,12 +21,12 @@ const transportLabels = {
   subway: '지하철',
 };
 
-export default function StepCard({ type, instruction }: StepCardProps) {
+export default function StepCard({ type, instruction, highlighted }: StepCardProps) {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, highlighted && styles.highlightedCard]}>
       <Text style={styles.label}>다음 이동수단</Text>
       <View style={styles.iconCircle}>
-        <Text style={styles.emoji}>{transportIcons[type]}</Text>
+        {transportIcons[type]}
       </View>
       <Text style={styles.typeText}>{transportLabels[type]}</Text>
       <Text style={styles.instructionText}>{instruction}</Text>
@@ -75,5 +77,17 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 4,
+  },
+  activeCard: {
+    backgroundColor: '#FF6A00',
+    borderColor: '#FF6A00',
+  },
+  highlightedCard: {
+      backgroundColor: '#FFF1E6', // 연한 주황색 강조 배경
+      shadowColor: '#FF6A00',
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 6,
   },
 });

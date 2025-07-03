@@ -34,6 +34,15 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "63264381-503c-4b56-81a6-d2bd28922d0d"
+      }
+    },
+    "android": {
+      "package": "com.kangsubin.roadmate"
     }
   }
 }
