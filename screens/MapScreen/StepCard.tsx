@@ -6,7 +6,8 @@ import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 interface StepCardProps {
   type: 'walk' | 'bus' | 'subway';
   instruction: string;
-  highlighted?: boolean; // ✅ 강조 여부
+  route?: string; // "지선:3426" 형식
+  highlighted?: boolean;
 }
 
 const transportIcons = {
@@ -21,14 +22,33 @@ const transportLabels = {
   subway: '지하철',
 };
 
-export default function StepCard({ type, instruction, highlighted }: StepCardProps) {
+function extractBusNumber(route?: string): string | null {
+  if (!route) return null;
+  const parts = route.split(':');
+  const number = parts.length === 2 ? parts[1] : null;
+
+  if (number) {
+    console.log(`🚌 버스 번호 추출됨: ${number}`);
+  } else {
+    console.log('❌ 버스 번호 추출 실패: route =', route);
+  }
+
+  return number;
+}
+
+export default function StepCard({ type, instruction, route, highlighted }: StepCardProps) {
+  const busNumber = type === 'bus' ? extractBusNumber(route) : null;
+
+  console.log('📦 StepCard props:', { type, instruction, route, highlighted });
+
   return (
     <View style={[styles.card, highlighted && styles.highlightedCard]}>
       <Text style={styles.label}>다음 이동수단</Text>
-      <View style={styles.iconCircle}>
-        {transportIcons[type]}
-      </View>
+      <View style={styles.iconCircle}>{transportIcons[type]}</View>
       <Text style={styles.typeText}>{transportLabels[type]}</Text>
+      {type === 'bus' && busNumber && (
+        <Text style={styles.busInfoText}>{`${busNumber}번 버스를 타세요`}</Text>
+      )}
       <Text style={styles.instructionText}>{instruction}</Text>
     </View>
   );
@@ -63,9 +83,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 6,
   },
-  emoji: {
-    fontSize: 26,
-  },
   typeText: {
     fontSize: 14,
     fontWeight: '500',
@@ -78,16 +95,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-  activeCard: {
-    backgroundColor: '#FF6A00',
-    borderColor: '#FF6A00',
+  busInfoText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#FF6A00',
+    marginBottom: 2,
   },
   highlightedCard: {
-      backgroundColor: '#FFF1E6', // 연한 주황색 강조 배경
-      shadowColor: '#FF6A00',
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 6,
+    backgroundColor: '#FFF1E6',
+    shadowColor: '#FF6A00',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
 });

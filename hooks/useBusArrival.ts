@@ -1,8 +1,8 @@
-// hooks/useBusArrival.ts
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const SERVICE_KEY ='Cb4J4pwSCPtLzWh4f1CyJUEZLFslFJPJgXOjaYDQZXXD3WFkNaNcWsOA+jWVx6h9XNsiy2TTIlfsQpodJyQ6iQ==';
+const SERVICE_KEY =
+  'Cb4J4pwSCPtLzWh4f1CyJUEZLFslFJPJgXOjaYDQZXXD3WFkNaNcWsOA%2BjWVx6h9XNsiy2TTIlfsQpodJyQ6iQ%3D%3D';
 
 interface BusArrivalInfo {
   routeId: string;
@@ -12,26 +12,55 @@ interface BusArrivalInfo {
   remainSeatCnt1: string;
 }
 
-export function useBusArrival(arsId: string) {
+export function useBusArrival(startStop: string | undefined) {
   const [data, setData] = useState<BusArrivalInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<null | string>(null);
+  const [arsId, setArsId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchArrivalInfo = async () => {
+    const fetchArsIdAndArrival = async () => {
+      if (!startStop) {
+        setError('정류장 이름이 없습니다.');
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await axios.get(
-          `http://ws.bus.go.kr/api/rest/stationinfo/getStationByUid`,
+        // 1. 정류장명으로 ARS ID 조회
+        const stationResponse = await axios.get(
+          `http://ws.bus.go.kr/api/rest/stationinfo/getStationByName`,
           {
             params: {
               serviceKey: SERVICE_KEY,
-              arsId,
+              stSrch: startStop,
             },
           }
         );
 
-        const items =
-          response.data?.ServiceResult?.msgBody?.itemList ?? [];
+        const stations = stationResponse.data?.ServiceResult?.msgBody?.itemList ?? [];
+
+        if (stations.length === 0) {
+          setError('정류장 정보를 찾을 수 없습니다.');
+          setLoading(false);
+          return;
+        }
+
+        const arsIdFetched = stations[0]?.arsId;
+        setArsId(arsIdFetched);
+
+        // 2. ARS ID로 도착 정보 조회
+        const arrivalResponse = await axios.get(
+          `http://ws.bus.go.kr/api/rest/stationinfo/getStationByUid`,
+          {
+            params: {
+              serviceKey: SERVICE_KEY,
+              arsId: arsIdFetched,
+            },
+          }
+        );
+
+        const items = arrivalResponse.data?.ServiceResult?.msgBody?.itemList ?? [];
 
         const parsedData = items.map((item: any) => ({
           routeId: item?.busRouteId,
@@ -42,15 +71,16 @@ export function useBusArrival(arsId: string) {
         }));
 
         setData(parsedData);
-      } catch (err: any) {
-        setError('버스 도착 정보를 불러오는 데 실패했습니다.');
+      } catch (err) {
+        setError('API 요청 중 오류가 발생했습니다.');
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchArrivalInfo();
-  }, [arsId]);
+    fetchArsIdAndArrival();
+  }, [startStop]);
 
-  return { data, loading, error };
+  return { data, loading, error, arsId };
 }

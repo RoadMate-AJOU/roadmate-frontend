@@ -25,14 +25,25 @@ export default function TransportSteps() {
     return legs.findIndex((leg) => {
       const coords =
         leg.steps?.flatMap((step) => {
-          const points = step.linestring?.split(' ').map((pair) => {
-            const [lon, lat] = pair.split(',').map(parseFloat);
-            return { latitude: lat, longitude: lon };
-          }) ?? [];
+          const points =
+            step.linestring
+              ?.split(' ')
+              .map((pair) => {
+                const [lon, lat] = pair.split(',').map(parseFloat);
+                return { latitude: lat, longitude: lon };
+              }) ?? [];
           return points;
         }) ?? [];
 
-      return coords.some((pt) => getDistance(location.latitude, location.longitude, pt.latitude, pt.longitude) < 30);
+      return coords.some(
+        (pt) =>
+          getDistance(
+            location.latitude,
+            location.longitude,
+            pt.latitude,
+            pt.longitude
+          ) < 30
+      );
     });
   }, [location]);
 
@@ -47,22 +58,24 @@ export default function TransportSteps() {
 
         const duration = leg.sectionTime ?? 0;
         const description = leg.steps?.[0]?.description ?? '';
-        const startStop = leg?.passStopList?.stationList?.[0]?.stationName;
-        const endStop = leg?.passStopList?.stationList?.slice(-1)?.[0]?.stationName;
+        const startStop = leg?.start?.name ?? '';
+        const endStop = leg?.end?.name ?? '';
+        const routeName = leg.route?.split(':')[1]; // ex) "간선:272" → "272"
 
         const instructionBoxProps =
           mode === 'walk'
             ? { mode, text: description }
             : mode === 'bus'
-            ? { mode, endStop }
+            ? { mode, startStop, endStop, routeName }
             : { mode, startStop, endStop, exitInfo: '2' };
 
         return (
           <View key={index} style={styles.row}>
             <StepCard
               type={mode}
-              instruction={`${duration% 60}분`}
+              instruction={`${duration % 60}분`}
               highlighted={index === activeIndex}
+              route={leg.route}
             />
             <InstructionBox {...instructionBoxProps} />
           </View>
