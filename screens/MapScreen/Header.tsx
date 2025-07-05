@@ -1,13 +1,18 @@
 // components/Header.tsx
 // 목적지 및 도착시간 표시 헤더
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function Header({ destination, eta }) {
+  const router = useRouter();
+
   return (
     <View style={styles.headerContainer}>
-      <Ionicons name="arrow-back" size={24} color="#333" />
+      <TouchableOpacity onPress={() => router.push('/destination')}>
+        <Ionicons name="arrow-back" size={24} color="#333" />
+      </TouchableOpacity>
       <Text style={styles.destinationText}>📍 {destination}</Text>
       <View style={{ flex: 1 }} />
       <View style={{ alignItems: 'flex-end' }}>

@@ -1,19 +1,16 @@
-// MapDisplay.tsx
-// 지도 + 현재 위치 마커 + 경로 표시 + 실시간 안내 텍스트
+// screens/MapScreen/MapDisplay.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useLocation } from '../../contexts/LocationContext';
 import styles from './styles';
 import MicButton from './MicButton';
-import InstructionBox from './InstructionBox';
-
 import sampleRoute from '../../constants/routeData';
 
-export default function MapDisplay() {
+export default function MapDisplay({ onTransportModeChange }) {
   const { location, setLocation } = useLocation();
   const [routeSegments, setRouteSegments] = useState([]);
-  const [currentWalkInstruction, setCurrentWalkInstruction] = useState('');
+  const [currentMode, setCurrentMode] = useState(null);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -21,11 +18,17 @@ export default function MapDisplay() {
   }, []);
 
   useEffect(() => {
-    const coords = routeSegments.flatMap(seg => seg.coords);
+    const coordsWithMode = routeSegments.flatMap(seg => seg.coords.map(coord => ({ ...coord, mode: seg.mode })));
     let i = 0;
     const interval = setInterval(() => {
-      if (i < coords.length) {
-        setLocation(coords[i]);
+      if (i < coordsWithMode.length) {
+        setLocation({ latitude: coordsWithMode[i].latitude, longitude: coordsWithMode[i].longitude });
+
+        if (coordsWithMode[i].mode !== currentMode) {
+          setCurrentMode(coordsWithMode[i].mode);
+          onTransportModeChange?.(coordsWithMode[i].mode); // 부모에게 mode 전달
+        }
+
         i++;
       } else {
         clearInterval(interval);
@@ -33,45 +36,6 @@ export default function MapDisplay() {
     }, 500);
     return () => clearInterval(interval);
   }, [routeSegments]);
-
-  useEffect(() => {
-    if (!location || routeSegments.length === 0) return;
-
-    const legs = sampleRoute?.metaData?.plan?.itineraries?.[0]?.legs ?? [];
-    for (const leg of legs) {
-      if (leg.mode !== 'WALK') continue;
-
-      for (const step of leg.steps || []) {
-        const points = step.linestring?.split(' ').map((pair) => {
-          const [lon, lat] = pair.split(',').map(parseFloat);
-          return { latitude: lat, longitude: lon };
-        }) ?? [];
-
-        const match = points.some((pt) =>
-          getDistance(location.latitude, location.longitude, pt.latitude, pt.longitude) < 20
-        );
-
-        if (match) {
-          setCurrentWalkInstruction(step.description);
-          return;
-        }
-      }
-    }
-
-    setCurrentWalkInstruction('');
-  }, [location, routeSegments]);
-
-  const getDistance = (lat1, lon1, lat2, lon2) => {
-    const toRad = (v) => (v * Math.PI) / 180;
-    const R = 6371000;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
 
   const interpolatePoints = (start, end, numPoints = 5) => {
     const points = [];
@@ -122,6 +86,7 @@ export default function MapDisplay() {
           if (isNaN(latNum) || isNaN(lonNum)) return null;
           return { latitude: latNum, longitude: lonNum };
         }).filter(coord => coord !== null);
+
         return [{ mode, coords: smoothPolyline(coords) }];
       }
 
@@ -206,13 +171,6 @@ export default function MapDisplay() {
           </>
         )}
       </MapView>
-
-      {/* 안내 문구 */}
-      {Boolean(currentWalkInstruction?.trim()) && (
-        <InstructionBox mode="walk" text={currentWalkInstruction} />
-      )}
-
-
 
       <MicButton />
     </View>

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const SERVICE_KEY =
-  'Cb4J4pwSCPtLzWh4f1CyJUEZLFslFJPJgXOjaYDQZXXD3WFkNaNcWsOA%2BjWVx6h9XNsiy2TTIlfsQpodJyQ6iQ%3D%3D';
+const SERVICE_KEY = 'q54p8xkyPgmvPjABUqrTpr5N%2Fpnw%2FO3luM7nVdCjoACkn%2FSW9mMO6DLkKamWQBk6SvkVlBOOdj2VWJeqcJm%2BCA%3D%3D';
+
 
 interface BusArrivalInfo {
   routeId: string;
@@ -12,8 +12,12 @@ interface BusArrivalInfo {
   remainSeatCnt1: string;
 }
 
-export function useBusArrival(startStop: string | undefined) {
+export function useBusArrival(
+  startStop: string | undefined,
+  routeName: string | undefined
+) {
   const [data, setData] = useState<BusArrivalInfo[]>([]);
+  const [matchedBus, setMatchedBus] = useState<BusArrivalInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [arsId, setArsId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,16 +31,18 @@ export function useBusArrival(startStop: string | undefined) {
       }
 
       try {
+        console.log('routeName : ', routeName);
         // 1. 정류장명으로 ARS ID 조회
         const stationResponse = await axios.get(
-          `http://ws.bus.go.kr/api/rest/stationinfo/getStationByName`,
+          `http://ws.bus.go.kr/api/rest/busRouteInfo/getBusRouteList`,
           {
             params: {
               serviceKey: SERVICE_KEY,
-              stSrch: startStop,
+              stSrch: routeName,
             },
           }
         );
+        console.log('🧾 arsId 응답:', stationResponse.data);
 
         const stations = stationResponse.data?.ServiceResult?.msgBody?.itemList ?? [];
 
@@ -71,6 +77,14 @@ export function useBusArrival(startStop: string | undefined) {
         }));
 
         setData(parsedData);
+
+        // 🎯 특정 노선 필터링
+        if (routeName) {
+          const matched = parsedData.find(
+            (bus) => bus.routeName === routeName
+          );
+          setMatchedBus(matched ?? null);
+        }
       } catch (err) {
         setError('API 요청 중 오류가 발생했습니다.');
         console.error(err);
@@ -80,7 +94,7 @@ export function useBusArrival(startStop: string | undefined) {
     };
 
     fetchArsIdAndArrival();
-  }, [startStop]);
+  }, [startStop, routeName]);
 
-  return { data, loading, error, arsId };
+  return { data, matchedBus, loading, error, arsId };
 }

@@ -1,9 +1,9 @@
+// screens/MapScreen/InstructionBox.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import axios from 'axios';
 import { useBusArrival } from '../../hooks/useBusArrival';
-
-const SERVICE_KEY = 'Cb4J4pwSCPtLzWh4f1CyJUEZLFslFJPJgXOjaYDQZXXD3WFkNaNcWsOA%2BjWVx6h9XNsiy2TTIlfsQpodJyQ6iQ%3D%3D';
+import { useLocation } from '../../contexts/LocationContext';
+import tmapData from '../../constants/routeData';
 
 interface InstructionBoxProps {
   mode: 'walk' | 'bus' | 'subway';
@@ -11,30 +11,21 @@ interface InstructionBoxProps {
   exitInfo?: string;
   startStop?: string;
   endStop?: string;
-  routeName?: string;
+  routeName?: string; // e.g., "272"
 }
 
-// ✅ arsId 조회 함수 + 디버깅 로그 추가됨
-async function fetchArsId(stationName: string): Promise<string | null> {
-  try {
-    const response = await axios.get(
-      'http://ws.bus.go.kr/api/rest/stationinfo/getStationByName',
-      {
-        params: {
-          ServiceKey: SERVICE_KEY,
-          stSrch: stationName,
-        },
-      }
-    );
-    console.log('🧾 arsId 응답:', response.data); // 🔍 응답 확인용 디버깅 로그
-
-    const items = response.data?.ServiceResult?.msgBody?.itemList ?? [];
-    return items.length > 0 ? items[0].arsId : null;
-  } catch (error) {
-    console.error('🚨 arsId 조회 실패:', error);
-    return null;
-  }
-}
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  const toRad = (x) => (x * Math.PI) / 180;
+  const R = 6371000; // meters
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
 
 export default function InstructionBox({
   mode,
@@ -44,52 +35,65 @@ export default function InstructionBox({
   endStop,
   routeName,
 }: InstructionBoxProps) {
-  const [arsId, setArsId] = useState<string | null>(null);
+  const { location } = useLocation();
+  const [dynamicText, setDynamicText] = useState(text ?? '');
 
-  // 🚏 arsId 동적으로 가져오기
+  // 🚶 도보일 경우 현재 위치에 따라 안내문 갱신
   useEffect(() => {
-    if (mode === 'bus' && startStop) {
-      fetchArsId(startStop).then(setArsId);
+    if (mode !== 'walk' || !location) return;
+
+    const legs = tmapData?.metaData?.plan?.itineraries?.[0]?.legs ?? [];
+    for (const leg of legs) {
+      if (leg.mode !== 'WALK') continue;
+
+      for (const step of leg.steps || []) {
+        const points = step.linestring?.split(' ').map((pair) => {
+          const [lon, lat] = pair.split(',').map(parseFloat);
+          return { latitude: lat, longitude: lon };
+        }) ?? [];
+
+        const match = points.some((pt) =>
+          getDistance(location.latitude, location.longitude, pt.latitude, pt.longitude) < 20
+        );
+
+        if (match) {
+          setDynamicText(step.description);
+          return;
+        }
+      }
     }
-  }, [startStop]);
+  }, [location, mode]);
 
-  // 🚍 arsId 준비되면 도착 정보 API 호출
-  const { data: arrivalData, loading } = useBusArrival(arsId ?? '');
-
-  // 🚌 현재 버스 노선 찾기
-  const matchedBus = arrivalData.find(
-    (bus) => bus.routeName === routeName
+  // 🚌 버스 정보 hook 호출 (버스일 때만)
+  const { matchedBus, loading } = useBusArrival(
+    mode === 'bus' ? startStop : undefined,
+    mode === 'bus' ? routeName : undefined
   );
 
-  // 🧭 디버깅 로그
-  useEffect(() => {
-    console.log('🧭 InstructionBox DEBUG');
-    console.log('mode:', mode);
-    console.log('startStop:', startStop);
-    console.log('arsId:', arsId);
-    console.log('routeName:', routeName);
-    console.log('API data:', arrivalData);
-    console.log('Matched arrival:', matchedBus);
-  }, [arsId, arrivalData]);
-
-  // 🚏 텍스트 렌더링
+  // 📝 텍스트 구성
   let displayText = '';
   if (mode === 'walk') {
-    displayText = text ?? '';
+    displayText = dynamicText;
   } else if (mode === 'bus') {
     displayText = `${endStop ?? '정류장'}에서 하차`;
   } else if (mode === 'subway') {
     displayText = `${startStop ?? '승차역'} ➜ ${endStop ?? '하차역'} (출구 ${exitInfo ?? '1'}번)`;
   }
 
+  // 🧪 렌더 조건 체크
+  const shouldRender = displayText || (mode === 'bus' && (matchedBus || !loading));
+  if (!shouldRender) return null;
+
   return (
     <View style={styles.box}>
       <Text style={styles.text}>{displayText}</Text>
+
       {mode === 'bus' && matchedBus && (
         <Text style={styles.arrival}>
           🚌 {matchedBus.predictTime1 || '도착 정보 없음'}
         </Text>
       )}
+
       {mode === 'bus' && !matchedBus && !loading && (
         <Text style={styles.arrival}>🚌 도착 정보 없음</Text>
       )}

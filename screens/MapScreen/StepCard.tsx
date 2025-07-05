@@ -10,46 +10,50 @@ interface StepCardProps {
   highlighted?: boolean;
 }
 
-const transportIcons = {
-  walk: <Ionicons name="walk" size={24} color="#FF6A00" />,
-  bus: <MaterialIcons name="directions-bus" size={24} color="#FF6A00" />,
-  subway: <FontAwesome5 name="subway" size={22} color="#FF6A00" />,
-};
-
-const transportLabels = {
-  walk: '도보',
-  bus: '버스',
-  subway: '지하철',
-};
-
-function extractBusNumber(route?: string): string | null {
-  if (!route) return null;
-  const parts = route.split(':');
-  const number = parts.length === 2 ? parts[1] : null;
-
-  if (number) {
-    console.log(`🚌 버스 번호 추출됨: ${number}`);
-  } else {
-    console.log('❌ 버스 번호 추출 실패: route =', route);
-  }
-
-  return number;
-}
-
 export default function StepCard({ type, instruction, route, highlighted }: StepCardProps) {
+  const extractBusNumber = (route?: string): string | null => {
+    if (!route) return null;
+    const parts = route.split(':');
+    return parts.length === 2 ? parts[1] : null;
+  };
+
   const busNumber = type === 'bus' ? extractBusNumber(route) : null;
 
-  console.log('📦 StepCard props:', { type, instruction, route, highlighted });
+  const getIcon = () => {
+    const color = highlighted ? '#FFF' : '#FF6A00';
+    switch (type) {
+      case 'walk':
+        return <Ionicons name="walk" size={24} color={color} />;
+      case 'bus':
+        return <MaterialIcons name="directions-bus" size={24} color={color} />;
+      case 'subway':
+        return <FontAwesome5 name="subway" size={22} color={color} />;
+      default:
+        return null;
+    }
+  };
+
+  const shouldShowInstruction = highlighted || type !== 'walk';
 
   return (
     <View style={[styles.card, highlighted && styles.highlightedCard]}>
-      <Text style={styles.label}>다음 이동수단</Text>
-      <View style={styles.iconCircle}>{transportIcons[type]}</View>
-      <Text style={styles.typeText}>{transportLabels[type]}</Text>
+      <Text style={[styles.label, highlighted && styles.highlightedText]}>다음 이동수단</Text>
+      <View style={[styles.iconCircle, highlighted && styles.highlightedCircle]}>{getIcon()}</View>
+      <Text style={[styles.typeText, highlighted && styles.highlightedText]}>{{
+        walk: '도보',
+        bus: '버스',
+        subway: '지하철',
+      }[type]}</Text>
       {type === 'bus' && busNumber && (
-        <Text style={styles.busInfoText}>{`${busNumber}번 버스를 타세요`}</Text>
+        <Text style={[styles.busInfoText, highlighted && styles.highlightedText]}>
+          {`${busNumber}번 버스를 타세요`}
+        </Text>
       )}
-      <Text style={styles.instructionText}>{instruction}</Text>
+      {shouldShowInstruction && (
+        <Text style={[styles.instructionText, highlighted && styles.highlightedText]}>
+          {instruction}
+        </Text>
+      )}
     </View>
   );
 }
@@ -102,11 +106,19 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   highlightedCard: {
-    backgroundColor: '#FFF1E6',
+    backgroundColor: '#FF6A00',
+    borderColor: '#FF6A00',
+    borderWidth: 2,
     shadowColor: '#FF6A00',
     shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
+  },
+  highlightedText: {
+    color: '#FFF',
+  },
+  highlightedCircle: {
+    borderColor: '#FFF',
   },
 });

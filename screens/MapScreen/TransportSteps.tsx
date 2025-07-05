@@ -1,3 +1,4 @@
+// screens/MapScreen/TransportSteps.tsx
 import React, { useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import StepCard from './StepCard';
@@ -16,36 +17,12 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-export default function TransportSteps() {
+export default function TransportSteps({ currentMode }) {
   const { location } = useLocation();
   const legs = tmapData?.metaData?.plan?.itineraries?.[0]?.legs ?? [];
 
-  const activeIndex = useMemo(() => {
-    if (!location) return -1;
-    return legs.findIndex((leg) => {
-      const coords =
-        leg.steps?.flatMap((step) => {
-          const points =
-            step.linestring
-              ?.split(' ')
-              .map((pair) => {
-                const [lon, lat] = pair.split(',').map(parseFloat);
-                return { latitude: lat, longitude: lon };
-              }) ?? [];
-          return points;
-        }) ?? [];
-
-      return coords.some(
-        (pt) =>
-          getDistance(
-            location.latitude,
-            location.longitude,
-            pt.latitude,
-            pt.longitude
-          ) < 30
-      );
-    });
-  }, [location]);
+  const busLegs = legs.filter((leg) => leg.mode === 'BUS');
+  const firstBusLeg = busLegs[0];
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -53,28 +30,51 @@ export default function TransportSteps() {
         const rawMode = leg?.mode?.toUpperCase();
         let mode: 'walk' | 'bus' | 'subway' = 'walk';
 
-        if (rawMode === 'BUS') mode = 'bus';
-        else if (rawMode === 'SUBWAY') mode = 'subway';
+        if (rawMode === 'BUS') {
+          if (leg !== firstBusLeg) return null;
+
+          const startStop = firstBusLeg?.start?.name ?? '';
+          const endStop = firstBusLeg?.end?.name ?? '';
+          const routeName = firstBusLeg?.route?.split(':')[1];
+          const duration = firstBusLeg?.sectionTime ?? 0;
+
+          return (
+            <View key={`bus-${index}`} style={styles.row}>
+              <StepCard
+                type="bus"
+                instruction={`${Math.floor(duration / 60)}분`}
+                highlighted={currentMode === 'BUS'}
+                route={firstBusLeg.route}
+              />
+              <InstructionBox
+                mode="bus"
+                startStop={startStop}
+                endStop={endStop}
+                routeName={routeName}
+              />
+            </View>
+          );
+        }
+
+        if (rawMode === 'SUBWAY') mode = 'subway';
 
         const duration = leg.sectionTime ?? 0;
         const description = leg.steps?.[0]?.description ?? '';
         const startStop = leg?.start?.name ?? '';
         const endStop = leg?.end?.name ?? '';
-        const routeName = leg.route?.split(':')[1]; // ex) "간선:272" → "272"
+        const routeName = leg.route?.includes(':') ? leg.route.split(':')[1] : leg.route;
 
         const instructionBoxProps =
           mode === 'walk'
             ? { mode, text: description }
-            : mode === 'bus'
-            ? { mode, startStop, endStop, routeName }
             : { mode, startStop, endStop, exitInfo: '2' };
 
         return (
           <View key={index} style={styles.row}>
             <StepCard
               type={mode}
-              instruction={`${duration % 60}분`}
-              highlighted={index === activeIndex}
+              instruction={`${Math.floor(duration / 60)}분`}
+              highlighted={currentMode === rawMode}
               route={leg.route}
             />
             <InstructionBox {...instructionBoxProps} />
