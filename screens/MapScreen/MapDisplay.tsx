@@ -1,4 +1,4 @@
-// screens/MapScreen/MapDisplay.tsx
+// MapDisplay.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
@@ -7,10 +7,9 @@ import styles from './styles';
 import MicButton from './MicButton';
 import sampleRoute from '../../constants/routeData';
 
-export default function MapDisplay({ onTransportModeChange }) {
-  const { location, setLocation } = useLocation();
+export default function MapDisplay() {
+  const { location, setLocation, setCurrentLegIndex } = useLocation();
   const [routeSegments, setRouteSegments] = useState([]);
-  const [currentMode, setCurrentMode] = useState(null);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -18,26 +17,35 @@ export default function MapDisplay({ onTransportModeChange }) {
   }, []);
 
   useEffect(() => {
-    const coordsWithMode = routeSegments.flatMap(seg => seg.coords.map(coord => ({ ...coord, mode: seg.mode })));
+    const coordsWithMeta = [];
+    routeSegments.forEach((seg) => {
+      seg.coords.forEach((coord) => {
+        coordsWithMeta.push({
+          ...coord,
+          mode: seg.mode,
+          legIndex: seg.originalLegIndex, // 정확한 legIndex 저장
+        });
+      });
+    });
+
     let i = 0;
     const interval = setInterval(() => {
-      if (i < coordsWithMode.length) {
-        setLocation({ latitude: coordsWithMode[i].latitude, longitude: coordsWithMode[i].longitude });
-
-        if (coordsWithMode[i].mode !== currentMode) {
-          setCurrentMode(coordsWithMode[i].mode);
-          onTransportModeChange?.(coordsWithMode[i].mode); // 부모에게 mode 전달
-        }
-
-        i++;
-      } else {
+      if (i >= coordsWithMeta.length) {
         clearInterval(interval);
+        return;
       }
-    }, 500);
+
+      const point = coordsWithMeta[i];
+      setLocation({ latitude: point.latitude, longitude: point.longitude });
+      setCurrentLegIndex(point.legIndex);
+      console.log('🚩 위치:', point.latitude, point.longitude, '→ leg:', point.legIndex);
+      i++;
+    }, 400);
+
     return () => clearInterval(interval);
   }, [routeSegments]);
 
-  const interpolatePoints = (start, end, numPoints = 5) => {
+  const interpolatePoints = (start, end, numPoints = 12) => {
     const points = [];
     for (let i = 1; i <= numPoints; i++) {
       const lat = start.latitude + (end.latitude - start.latitude) * (i / (numPoints + 1));
@@ -47,10 +55,10 @@ export default function MapDisplay({ onTransportModeChange }) {
     return points;
   };
 
-  const smoothPolyline = (coords) => {
+  const smoothPolyline = (coords, density = 12) => {
     const newCoords = [];
     for (let i = 0; i < coords.length - 1; i++) {
-      newCoords.push(coords[i], ...interpolatePoints(coords[i], coords[i + 1], 4));
+      newCoords.push(coords[i], ...interpolatePoints(coords[i], coords[i + 1], density));
     }
     newCoords.push(coords[coords.length - 1]);
     return newCoords;
@@ -63,55 +71,35 @@ export default function MapDisplay({ onTransportModeChange }) {
       return;
     }
 
-    const parsed = legs.flatMap((leg) => {
+    const parsed = legs.flatMap((leg, legIndex) => {
       const mode = leg.mode;
+      const density = legIndex === 2 ? 20 : 12; // 두 번째 도보 구간 보간 더 많이
+
       if (mode === 'WALK' && leg.steps) {
         const mergedCoords = leg.steps.flatMap((step) => {
           const coords = step.linestring?.split(' ').map(pair => {
             const [lon, lat] = pair.split(',');
-            const latNum = parseFloat(lat);
-            const lonNum = parseFloat(lon);
-            if (isNaN(latNum) || isNaN(lonNum)) return null;
-            return { latitude: latNum, longitude: lonNum };
-          }).filter(coord => coord !== null);
-          return coords || [];
+            return { latitude: parseFloat(lat), longitude: parseFloat(lon) };
+          });
+          return coords.filter(Boolean);
         });
-        return [{ mode, coords: smoothPolyline(mergedCoords) }];
+        return [{ mode, coords: smoothPolyline(mergedCoords, density), originalLegIndex: legIndex }];
       }
 
-      if ((mode === 'SUBWAY' || mode === 'BUS') && leg.passStopList?.stationList) {
+      if ((mode === 'BUS' || mode === 'SUBWAY') && leg.passStopList?.stationList) {
         const coords = leg.passStopList.stationList.map((station) => {
-          const latNum = parseFloat(station.lat);
-          const lonNum = parseFloat(station.lon);
-          if (isNaN(latNum) || isNaN(lonNum)) return null;
-          return { latitude: latNum, longitude: lonNum };
-        }).filter(coord => coord !== null);
-
-        return [{ mode, coords: smoothPolyline(coords) }];
+          return {
+            latitude: parseFloat(station.lat),
+            longitude: parseFloat(station.lon),
+          };
+        });
+        return [{ mode, coords: smoothPolyline(coords, density), originalLegIndex: legIndex }];
       }
 
       return [];
     });
 
-    const connected = [];
-    for (let i = 0; i < parsed.length; i++) {
-      const current = parsed[i];
-      if (i > 0) {
-        const prev = parsed[i - 1];
-        const prevEnd = prev.coords[prev.coords.length - 1];
-        const currStart = current.coords[0];
-        const dist = Math.sqrt(
-          Math.pow(prevEnd.latitude - currStart.latitude, 2) +
-          Math.pow(prevEnd.longitude - currStart.longitude, 2)
-        );
-        if (dist > 0.00005) {
-          connected.push({ mode: 'WALK', coords: smoothPolyline([prevEnd, currStart]) });
-        }
-      }
-      connected.push(current);
-    }
-
-    setRouteSegments(connected.filter(seg => seg.coords.length > 1));
+    setRouteSegments(parsed);
   };
 
   const getColorByMode = (mode) => {
@@ -128,21 +116,12 @@ export default function MapDisplay({ onTransportModeChange }) {
       <MapView
         ref={mapRef}
         style={styles.map}
-        initialRegion={
-          routeSegments.length > 0
-            ? {
-                latitude: routeSegments[0].coords[0].latitude,
-                longitude: routeSegments[0].coords[0].longitude,
-                latitudeDelta: 0.001,
-                longitudeDelta: 0.001,
-              }
-            : {
-                latitude: location?.latitude || 37.5665,
-                longitude: location?.longitude || 126.9780,
-                latitudeDelta: 0.001,
-                longitudeDelta: 0.001,
-              }
-        }
+        initialRegion={{
+          latitude: location?.latitude || 37.5665,
+          longitude: location?.longitude || 126.9780,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }}
       >
         {location && (
           <Marker coordinate={location}>
@@ -150,26 +129,15 @@ export default function MapDisplay({ onTransportModeChange }) {
           </Marker>
         )}
 
-        {routeSegments.map((segment, idx) => (
+        {routeSegments.map((seg, idx) => (
           <Polyline
             key={idx}
-            coordinates={segment.coords}
-            strokeColor={getColorByMode(segment.mode)}
-            strokeWidth={segment.mode === 'WALK' ? 3 : 6}
-            lineDashPattern={segment.mode === 'WALK' ? [8, 6] : undefined}
+            coordinates={seg.coords}
+            strokeColor={getColorByMode(seg.mode)}
+            strokeWidth={seg.mode === 'WALK' ? 3 : 6}
+            lineDashPattern={seg.mode === 'WALK' ? [8, 6] : undefined}
           />
         ))}
-
-        {routeSegments.length > 0 && (
-          <>
-            <Marker coordinate={routeSegments[0].coords[0]} title="출발지" pinColor="green" />
-            <Marker
-              coordinate={routeSegments[routeSegments.length - 1].coords.slice(-1)[0]}
-              title="도착지"
-              pinColor="red"
-            />
-          </>
-        )}
       </MapView>
 
       <MicButton />

@@ -1,28 +1,16 @@
 // screens/MapScreen/TransportSteps.tsx
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import StepCard from './StepCard';
 import InstructionBox from './InstructionBox';
 import tmapData from '../../constants/routeData';
 import { useLocation } from '../../contexts/LocationContext';
 
-const getDistance = (lat1, lon1, lat2, lon2) => {
-  const toRad = (x) => (x * Math.PI) / 180;
-  const R = 6371000; // meters
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-export default function TransportSteps({ currentMode }) {
-  const { location } = useLocation();
+export default function TransportSteps() {
+  const { currentLegIndex } = useLocation();
   const legs = tmapData?.metaData?.plan?.itineraries?.[0]?.legs ?? [];
 
-  const busLegs = legs.filter((leg) => leg.mode === 'BUS');
-  const firstBusLeg = busLegs[0];
+  let busCount = 0; // 각 버스 구간의 순서 추적
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -30,33 +18,8 @@ export default function TransportSteps({ currentMode }) {
         const rawMode = leg?.mode?.toUpperCase();
         let mode: 'walk' | 'bus' | 'subway' = 'walk';
 
-        if (rawMode === 'BUS') {
-          if (leg !== firstBusLeg) return null;
-
-          const startStop = firstBusLeg?.start?.name ?? '';
-          const endStop = firstBusLeg?.end?.name ?? '';
-          const routeName = firstBusLeg?.route?.split(':')[1];
-          const duration = firstBusLeg?.sectionTime ?? 0;
-
-          return (
-            <View key={`bus-${index}`} style={styles.row}>
-              <StepCard
-                type="bus"
-                instruction={`${Math.floor(duration / 60)}분`}
-                highlighted={currentMode === 'BUS'}
-                route={firstBusLeg.route}
-              />
-              <InstructionBox
-                mode="bus"
-                startStop={startStop}
-                endStop={endStop}
-                routeName={routeName}
-              />
-            </View>
-          );
-        }
-
-        if (rawMode === 'SUBWAY') mode = 'subway';
+        if (rawMode === 'BUS') mode = 'bus';
+        else if (rawMode === 'SUBWAY') mode = 'subway';
 
         const duration = leg.sectionTime ?? 0;
         const description = leg.steps?.[0]?.description ?? '';
@@ -67,19 +30,29 @@ export default function TransportSteps({ currentMode }) {
         const instructionBoxProps =
           mode === 'walk'
             ? { mode, text: description }
-            : { mode, startStop, endStop, exitInfo: '2' };
+            : { mode, startStop, endStop, exitInfo: '2', busOrder: busCount };
 
-        return (
+        const stepCard = (
+          <StepCard
+            type={mode}
+            instruction={`${Math.floor(duration / 60)}분`}
+            highlighted={index === currentLegIndex} // 수정된 부분
+            route={leg.route}
+          />
+        );
+
+        const instructionBox = <InstructionBox {...instructionBoxProps} />;
+
+        const row = (
           <View key={index} style={styles.row}>
-            <StepCard
-              type={mode}
-              instruction={`${Math.floor(duration / 60)}분`}
-              highlighted={currentMode === rawMode}
-              route={leg.route}
-            />
-            <InstructionBox {...instructionBoxProps} />
+            {stepCard}
+            {instructionBox}
           </View>
         );
+
+        if (mode === 'bus') busCount++; // 다음 busOrder용 증가
+
+        return row;
       })}
     </ScrollView>
   );
@@ -89,12 +62,11 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: 16,
     paddingBottom: 40,
-    paddingLeft: 10,
-    alignItems: 'flex-start',
+    paddingHorizontal: 16,
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
 });

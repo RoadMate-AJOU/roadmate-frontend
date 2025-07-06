@@ -1,104 +1,62 @@
-// screens/MapScreen/InstructionBox.tsx
-import React, { useEffect, useState } from 'react';
+// InstructionBox.tsx
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useBusArrival } from '../../hooks/useBusArrival';
-import { useLocation } from '../../contexts/LocationContext';
-import tmapData from '../../constants/routeData';
 
 interface InstructionBoxProps {
   mode: 'walk' | 'bus' | 'subway';
-  text?: string;
-  exitInfo?: string;
-  startStop?: string;
-  endStop?: string;
-  routeName?: string; // e.g., "272"
+  busOrder?: number; // 첫 번째 버스인지 두 번째 버스인지
 }
 
-const getDistance = (lat1, lon1, lat2, lon2) => {
-  const toRad = (x) => (x * Math.PI) / 180;
-  const R = 6371000; // meters
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
+export default function InstructionBox({ mode, busOrder = 0 }: InstructionBoxProps) {
+  if (mode !== 'bus') return null;
 
-export default function InstructionBox({
-  mode,
-  text,
-  exitInfo,
-  startStop,
-  endStop,
-  routeName,
-}: InstructionBoxProps) {
-  const { location } = useLocation();
-  const [dynamicText, setDynamicText] = useState(text ?? '');
+  if (busOrder === 0) {
+    return (
+      <View style={styles.box}>
+        <Text style={styles.title}>🚌 시흥초등학교</Text>
+        <Text style={styles.busLine}>
+          <Text style={styles.busNumber}>707-1번 </Text>
+          <Text style={styles.busTime}>2분</Text>
+        </Text>
+        <Text style={styles.busLine}>
+          <Text style={styles.busNumber}>707-1번 </Text>
+          <Text style={styles.busTime}>9분</Text>
+        </Text>
 
-  // 🚶 도보일 경우 현재 위치에 따라 안내문 갱신
-  useEffect(() => {
-    if (mode !== 'walk' || !location) return;
+        <Text style={styles.arrow}>▼</Text>
 
-    const legs = tmapData?.metaData?.plan?.itineraries?.[0]?.legs ?? [];
-    for (const leg of legs) {
-      if (leg.mode !== 'WALK') continue;
+        <Text style={styles.title}>🚌 삼성디지털프라자</Text>
+        <Text style={styles.busLine}>
+          <Text style={styles.busNumber}>707-1번 </Text>
+          <Text style={styles.busTime}>19분</Text>
+        </Text>
+      </View>
+    );
+  } else if (busOrder === 1) {
+    return (
+      <View style={styles.box}>
+        <Text style={styles.title}>🚌 중앙시장</Text>
+        <Text style={styles.busLine}>
+          <Text style={styles.busNumber}>13-4번 </Text>
+          <Text style={styles.busTime}>5분</Text>
+        </Text>
+        <Text style={styles.busLine}>
+          <Text style={styles.busNumber}>13-4번 </Text>
+          <Text style={styles.busTime}>11분</Text>
+        </Text>
 
-      for (const step of leg.steps || []) {
-        const points = step.linestring?.split(' ').map((pair) => {
-          const [lon, lat] = pair.split(',').map(parseFloat);
-          return { latitude: lat, longitude: lon };
-        }) ?? [];
+        <Text style={styles.arrow}>▼</Text>
 
-        const match = points.some((pt) =>
-          getDistance(location.latitude, location.longitude, pt.latitude, pt.longitude) < 20
-        );
-
-        if (match) {
-          setDynamicText(step.description);
-          return;
-        }
-      }
-    }
-  }, [location, mode]);
-
-  // 🚌 버스 정보 hook 호출 (버스일 때만)
-  const { matchedBus, loading } = useBusArrival(
-    mode === 'bus' ? startStop : undefined,
-    mode === 'bus' ? routeName : undefined
-  );
-
-  // 📝 텍스트 구성
-  let displayText = '';
-  if (mode === 'walk') {
-    displayText = dynamicText;
-  } else if (mode === 'bus') {
-    displayText = `${endStop ?? '정류장'}에서 하차`;
-  } else if (mode === 'subway') {
-    displayText = `${startStop ?? '승차역'} ➜ ${endStop ?? '하차역'} (출구 ${exitInfo ?? '1'}번)`;
+        <Text style={styles.title}>🚌 수원역</Text>
+        <Text style={styles.busLine}>
+          <Text style={styles.busNumber}>13-4번 </Text>
+          <Text style={styles.busTime}>24분</Text>
+        </Text>
+      </View>
+    );
   }
 
-  // 🧪 렌더 조건 체크
-  const shouldRender = displayText || (mode === 'bus' && (matchedBus || !loading));
-  if (!shouldRender) return null;
-
-  return (
-    <View style={styles.box}>
-      <Text style={styles.text}>{displayText}</Text>
-
-      {mode === 'bus' && matchedBus && (
-        <Text style={styles.arrival}>
-          🚌 {matchedBus.predictTime1 || '도착 정보 없음'}
-        </Text>
-      )}
-
-      {mode === 'bus' && !matchedBus && !loading && (
-        <Text style={styles.arrival}>🚌 도착 정보 없음</Text>
-      )}
-    </View>
-  );
+  return null;
 }
 
 const styles = StyleSheet.create({
@@ -107,18 +65,32 @@ const styles = StyleSheet.create({
     borderColor: '#FF6A00',
     borderWidth: 1.5,
     borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     marginBottom: 12,
     marginLeft: 10,
   },
-  text: {
+  title: {
     fontSize: 14,
-    color: '#333',
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+    marginTop: 6,
   },
-  arrival: {
-    marginTop: 4,
+  busLine: {
     fontSize: 13,
+    marginVertical: 1,
+  },
+  busNumber: {
+    color: '#000',
+  },
+  busTime: {
     color: '#FF6A00',
+  },
+  arrow: {
+    textAlign: 'center',
+    fontSize: 18,
+    color: '#FF6A00',
+    marginVertical: 4,
   },
 });
