@@ -1,3 +1,4 @@
+// screens/Home.js
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -7,76 +8,108 @@ import {
   TextInput,
   Platform,
   PermissionsAndroid,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-//import Voice from '@react-native-voice/voice';
 import { router } from 'expo-router';
+import { useLocation } from '../contexts/LocationContext';
+import { gptService, poiService } from '../services/api'; // 새로 만든 API 서비스
 
-const ENABLE_VOICE = false; // ⚠️ 실제 기기에서 음성 기능 테스트 시 true로 변경
+const ENABLE_VOICE = false; // 음성 기능 비활성화
 
 export default function Home() {
   const [recognizedText, setRecognizedText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { location } = useLocation();
 
-  const startRecognizing = async () => {
-    if (!ENABLE_VOICE) return;
-
-    if (Platform.OS === 'android') {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-        {
-          title: '마이크 권한 요청',
-          message: '음성 인식을 위해 마이크 권한이 필요합니다.',
-          buttonPositive: '확인',
-        }
-      );
-      if (granted !== PermissionsAndroid.RESULTS.GRANTED) return;
+  // 검색 처리 함수 (텍스트 입력용 - GPT 없이 바로 POI 검색)
+  const handleTextSearch = async () => {
+    if (!recognizedText.trim()) {
+      Alert.alert('알림', '목적지를 입력해주세요.');
+      return;
     }
+
+    setIsLoading(true);
 
     try {
-      await Voice.destroy();
-      await Voice.start('ko-KR');
-      setIsListening(true);
-    } catch (e) {
-      console.error('Voice start error:', e);
+      // 텍스트 입력 시 GPT 파싱 없이 바로 POI 검색
+      console.log('📝 텍스트 입력 - 바로 POI 검색:', recognizedText);
+
+      router.push({
+        pathname: '/destination',
+        params: {
+          searchKeyword: recognizedText.trim(),
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ 검색 오류:', error);
+      Alert.alert('오류', '검색 중 문제가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  // 음성 처리 함수 (음성 입력용 - GPT 파싱 후 POI 검색)
+  const handleVoiceSearch = async (voiceText) => {
+    if (!voiceText.trim()) {
+      Alert.alert('알림', '음성이 인식되지 않았습니다. 다시 시도해주세요.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // 음성 입력 시 GPT로 파싱 후 목적지 추출
+      console.log('🎯 음성 입력 - GPT 파싱:', voiceText);
+      const parsedResult = await gptService.parseUserInput(voiceText);
+      console.log('📍 파싱 결과:', parsedResult);
+
+      const { departure, destination } = parsedResult;
+
+      if (!destination) {
+        Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 말씀해주세요.');
+        return;
+      }
+
+      // 파싱된 목적지로 검색
+      console.log('🔍 파싱된 목적지로 검색:', destination);
+      router.push({
+        pathname: '/destination',
+        params: {
+          searchKeyword: destination,
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ 음성 검색 오류:', error);
+      Alert.alert('오류', '음성 인식 중 문제가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startRecognizing = async () => {
+    if (!ENABLE_VOICE) {
+      // 음성 기능이 비활성화된 경우 - 텍스트가 있으면 음성 검색으로, 없으면 텍스트 검색으로
+      if (recognizedText.trim()) {
+        // 텍스트가 입력되어 있으면 음성 처리 플로우로 (GPT 파싱)
+        handleVoiceSearch(recognizedText);
+      } else {
+        Alert.alert('알림', '검색할 목적지를 입력해주세요.');
+      }
+      return;
+    }
+
+    // 실제 음성 인식 로직 (현재 비활성화)
+    setIsListening(true);
+    // Voice recognition logic would go here
   };
 
   const stopRecognizing = async () => {
-    if (!ENABLE_VOICE) return;
-
-    try {
-      await Voice.stop();
-      setIsListening(false);
-    } catch (e) {
-      console.error('Voice stop error:', e);
-    }
+    setIsListening(false);
   };
-
-  useEffect(() => {
-    if (!ENABLE_VOICE) return;
-
-    Voice.onSpeechResults = (event) => {
-      if (event.value) {
-        setRecognizedText(event.value[0]);
-        router.push('/destination');
-      }
-    };
-
-    // ✅ 실시간 텍스트
-    Voice.onSpeechPartialResults = (event) => {
-      if (event.value) {
-        setRecognizedText(event.value[0]); // 말하는 중에도 텍스트 반영
-      }
-    };
-
-    Voice.onSpeechEnd = () => setIsListening(false);
-
-    return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
-    };
-  }, []);
-
 
   return (
     <View style={styles.container}>
@@ -88,30 +121,41 @@ export default function Home() {
           placeholderTextColor="#FF5900"
           value={recognizedText}
           onChangeText={setRecognizedText}
+          onSubmitEditing={handleTextSearch} // 엔터키로 텍스트 검색
         />
-        <Ionicons name="search" size={18} color="#FF5900" />
+        <TouchableOpacity onPress={handleTextSearch}>
+          <Ionicons name="search" size={18} color="#FF5900" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.guideTextContainer}>
-        <Text style={styles.guideText}>마이크를 누르고 목적지를 검색해 주세요.</Text>
-        <Text style={styles.exampleText}>예) “서울역까지 가고 싶어”</Text>
+        <Text style={styles.guideText}>검색창에 입력하거나 마이크로 목적지를 말해주세요.</Text>
       </View>
 
       {/* 텍스트 + 마이크 */}
       <View style={styles.centerContent}>
         <TouchableOpacity
-          style={[styles.micButton, isListening && styles.micButtonActive]}
-          onPress={
-              ENABLE_VOICE
-                ? (isListening ? stopRecognizing : startRecognizing)
-                : () => router.push('/destination') // ✅ 음성 꺼진 경우 바로 이동
-            }
+          style={[
+            styles.micButton,
+            (isListening || isLoading) && styles.micButtonActive
+          ]}
+          onPress={isLoading ? null : startRecognizing}
+          disabled={isLoading}
         >
-          <Ionicons name="mic-outline" size={100} color="white" />
+          {isLoading ? (
+            <Ionicons name="hourglass-outline" size={100} color="white" />
+          ) : (
+            <Ionicons name="mic-outline" size={100} color="white" />
+          )}
         </TouchableOpacity>
 
         <Text style={styles.resultText}>
-          {recognizedText ? recognizedText : '마이크를 눌러 말해주세요'}
+          {isLoading
+            ? '검색 중...'
+            : recognizedText
+              ? `"${recognizedText}" 검색 준비됨`
+              : '텍스트 입력 또는 마이크 사용'
+          }
         </Text>
       </View>
     </View>
@@ -160,7 +204,7 @@ const styles = StyleSheet.create({
   centerContent: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-start', // 중앙이 아닌 위쪽 기준
+    justifyContent: 'flex-start',
     paddingTop: 70,
   },
   micButton: {
