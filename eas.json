@@ -9,7 +9,14 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "cache": {
+        "key" : "preview-cache-v1",
+        "cacheDefaultPaths" : true
+      }
     },
     "production": {
       "autoIncrement": true
