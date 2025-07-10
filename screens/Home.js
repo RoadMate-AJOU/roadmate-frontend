@@ -5,22 +5,29 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  Platform,
+  ScrollView,
   PermissionsAndroid,
+  Platform,
 } from 'react-native';
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from 'expo-speech-recognition';
 import { Ionicons } from '@expo/vector-icons';
-//import Voice from '@react-native-voice/voice';
 import { router } from 'expo-router';
 
-const ENABLE_VOICE = false; // ⚠️ 실제 기기에서 음성 기능 테스트 시 true로 변경
+const ENABLE_VOICE = true;
 
 export default function Home() {
   const [recognizedText, setRecognizedText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [logMessages, setLogMessages] = useState([]);
 
-  const startRecognizing = async () => {
-    if (!ENABLE_VOICE) return;
+  const appendLog = (msg: string) => {
+    setLogMessages((prev) => [...prev.slice(-19), msg]);
+  };
 
+  const requestAudioPermission = async () => {
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
@@ -30,53 +37,71 @@ export default function Home() {
           buttonPositive: '확인',
         }
       );
-      if (granted !== PermissionsAndroid.RESULTS.GRANTED) return;
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return true;
+  };
+
+  const startRecognizing = async () => {
+    if (!ENABLE_VOICE) return;
+
+    const granted = await requestAudioPermission();
+    if (!granted) {
+      appendLog('❌ 마이크 권한 거부됨');
+      return;
     }
 
     try {
-      await Voice.destroy();
-      await Voice.start('ko-KR');
+      await ExpoSpeechRecognitionModule.start({
+        lang: 'ko-KR',
+        continuous: true,
+        interimResults: true,
+      });
+      appendLog('▶️ 음성 인식 시작됨');
+      const perm = await ExpoSpeechRecognitionModule.getPermissionsAsync();
+      appendLog(`권한 상태: ${JSON.stringify(perm)}`);
       setIsListening(true);
-    } catch (e) {
-      console.error('Voice start error:', e);
+    } catch (error) {
+      appendLog(`❌ 음성 인식 오류: ${JSON.stringify(error)}`);
     }
   };
 
   const stopRecognizing = async () => {
-    if (!ENABLE_VOICE) return;
-
     try {
-      await Voice.stop();
+      await ExpoSpeechRecognitionModule.stop();
+      appendLog('⏹️ 음성 인식 중지됨');
       setIsListening(false);
     } catch (e) {
-      console.error('Voice stop error:', e);
+      appendLog(`❌ 중지 오류: ${JSON.stringify(e)}`);
     }
   };
 
-  useEffect(() => {
-    if (!ENABLE_VOICE) return;
+ useSpeechRecognitionEvent("result", (event) => {
+   const transcript = event.results?.[0]?.transcript;
+   if (transcript) {
+     appendLog(`🗣️ 인식 결과: ${transcript}`);
+     setRecognizedText(transcript);
+   }
+ });
 
-    Voice.onSpeechResults = (event) => {
-      if (event.value) {
-        setRecognizedText(event.value[0]);
-        router.push('/destination');
-      }
-    };
+ useSpeechRecognitionEvent("partialresult", (event) => {
+   const transcript = event.text;
+   if (transcript) {
+     appendLog(`📝 인식 중: ${transcript}`);
+     setRecognizedText(transcript);
+   }
+ });
 
-    // ✅ 실시간 텍스트
-    Voice.onSpeechPartialResults = (event) => {
-      if (event.value) {
-        setRecognizedText(event.value[0]); // 말하는 중에도 텍스트 반영
-      }
-    };
+ useSpeechRecognitionEvent("end", () => {
+   appendLog('🔇 음성 인식 종료');
+   setIsListening(false);
+   router.push('/destination');
+ });
 
-    Voice.onSpeechEnd = () => setIsListening(false);
-
-    return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
-    };
-  }, []);
-
+ useSpeechRecognitionEvent("error", (event) => {
+   appendLog(`❌ 인식 에러: ${event.message}`);
+   setIsListening(false);
+ });
 
   return (
     <View style={styles.container}>
@@ -97,23 +122,30 @@ export default function Home() {
         <Text style={styles.exampleText}>예) “서울역까지 가고 싶어”</Text>
       </View>
 
-      {/* 텍스트 + 마이크 */}
+      {/* 마이크 버튼 */}
       <View style={styles.centerContent}>
         <TouchableOpacity
           style={[styles.micButton, isListening && styles.micButtonActive]}
-          onPress={
-              ENABLE_VOICE
-                ? (isListening ? stopRecognizing : startRecognizing)
-                : () => router.push('/destination') // ✅ 음성 꺼진 경우 바로 이동
-            }
+          onPress={isListening ? stopRecognizing : startRecognizing}
         >
           <Ionicons name="mic-outline" size={100} color="white" />
         </TouchableOpacity>
+      </View>
 
+      {/* 인식된 텍스트 실시간 출력 */}
+      <View style={styles.resultContainer}>
+        <Text style={styles.resultTitle}>📝 인식된 텍스트</Text>
         <Text style={styles.resultText}>
-          {recognizedText ? recognizedText : '마이크를 눌러 말해주세요'}
+          {recognizedText || '마이크를 눌러 말해보세요.'}
         </Text>
       </View>
+
+      {/* 로그 출력 */}
+      <ScrollView style={styles.logContainer}>
+        {logMessages.map((msg, idx) => (
+          <Text key={idx} style={styles.logText}>• {msg}</Text>
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -122,7 +154,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 100,
+    paddingTop: 50,
   },
   searchBox: {
     flexDirection: 'row',
@@ -132,7 +164,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     width: '80%',
-    height: '7%',
+    height: '12%',
     alignSelf: 'center',
     marginBottom: 20,
   },
@@ -142,7 +174,7 @@ const styles = StyleSheet.create({
     color: '#FF5900',
   },
   guideTextContainer: {
-    marginTop: 70,
+    marginTop: 50,
     marginBottom: 30,
     alignItems: 'center',
   },
@@ -158,10 +190,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   centerContent: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-start', // 중앙이 아닌 위쪽 기준
-    paddingTop: 70,
+    justifyContent: 'center',
   },
   micButton: {
     backgroundColor: '#FF5900',
@@ -182,10 +212,29 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 20,
   },
+  resultContainer: {
+    paddingHorizontal: 30,
+    paddingTop: 40,
+  },
+  resultTitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 8,
+  },
   resultText: {
     fontSize: 20,
-    marginTop: 30,
-    textAlign: 'center',
     color: '#000',
+    textAlign: 'center',
+  },
+  logContainer: {
+    maxHeight: 150,
+    paddingHorizontal: 20,
+    marginTop: 30,
+    marginBottom: 20,
+  },
+  logText: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 4,
   },
 });
