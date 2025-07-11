@@ -1,4 +1,3 @@
-// screens/MapScreen/TransportSteps.tsx
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import StepCard from './StepCard';
@@ -30,18 +29,33 @@ export default function TransportSteps() {
         const instructionBoxProps =
           mode === 'walk'
             ? { mode, text: description }
-            : { mode, startStop, endStop, exitInfo: '2', busOrder: busCount };
+            : {
+                mode,
+                startStop,
+                endStop,
+                exitInfo: '2',
+                busOrder: busCount,
+                stationName: startStop,
+                routeName: routeName || '',
+                stationId: leg.stId ?? leg.stationId ?? '',
+                busRouteId: leg.busRouteId ?? '',
+                stationOrder: leg.ord ?? leg.stationOrder ?? '',
+
+              };
 
         const stepCard = (
           <StepCard
+            key={`step-${index}`}
             type={mode}
             instruction={`${Math.floor(duration / 60)}분`}
-            highlighted={index === currentLegIndex} // 수정된 부분
+            highlighted={index === currentLegIndex}
             route={leg.route}
           />
         );
 
-        const instructionBox = <InstructionBox {...instructionBoxProps} />;
+        const instructionBox = (
+          <InstructionBox key={`instruction-${index}`} {...instructionBoxProps} />
+        );
 
         const row = (
           <View key={index} style={styles.row}>
@@ -50,7 +64,7 @@ export default function TransportSteps() {
           </View>
         );
 
-        if (mode === 'bus') busCount++; // 다음 busOrder용 증가
+        if (mode === 'bus') busCount++;
 
         return row;
       })}

@@ -1,100 +1,88 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const SERVICE_KEY = 'q54p8xkyPgmvPjABUqrTpr5N%2Fpnw%2FO3luM7nVdCjoACkn%2FSW9mMO6DLkKamWQBk6SvkVlBOOdj2VWJeqcJm%2BCA%3D%3D';
-
-
 interface BusArrivalInfo {
-  routeId: string;
-  routeName: string;
-  locationNo1: string;
-  predictTime1: string;
-  remainSeatCnt1: string;
+  message: string;
 }
 
 export function useBusArrival(
-  startStop: string | undefined,
-  routeName: string | undefined
+  stId?: string,
+  busRouteId?: string,
+  ord?: string
 ) {
   const [data, setData] = useState<BusArrivalInfo[]>([]);
-  const [matchedBus, setMatchedBus] = useState<BusArrivalInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [arsId, setArsId] = useState<string | null>(null);
+  const [soonestMinutes, setSoonestMinutes] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ 문자열에서 "X분"을 정수로 추출
+  const extractMinutesFromMessage = (msg: string): number | null => {
+    const match = msg.match(/(\d+)\s*분/);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
   useEffect(() => {
-    const fetchArsIdAndArrival = async () => {
-      if (!startStop) {
-        setError('정류장 이름이 없습니다.');
-        setLoading(false);
-        return;
-      }
+    let interval: NodeJS.Timeout;
+
+    const fetchBusArrival = async () => {
+      if (!stId || !busRouteId || !ord) return;
+
+      console.log('\n🔎 [useBusArrival] 호출');
+      console.log('🟢 stId:', stId);
+      console.log('🟢 busRouteId:', busRouteId);
+      console.log('🟢 ord:', ord);
+
+      setLoading(true);
+      setError(null);
 
       try {
-        console.log('routeName : ', routeName);
-        // 1. 정류장명으로 ARS ID 조회
-        const stationResponse = await axios.get(
-          `http://ws.bus.go.kr/api/rest/busRouteInfo/getBusRouteList`,
-          {
-            params: {
-              serviceKey: SERVICE_KEY,
-              stSrch: routeName,
-            },
-          }
-        );
-        console.log('🧾 arsId 응답:', stationResponse.data);
+        const response = await axios.get('http://10.0.2.2:4000/bus-api', {
+          params: {
+            endpoint: 'arrive/getArrInfoByRoute',
+            stId,
+            busRouteId,
+            ord,
+          },
+        });
 
-        const stations = stationResponse.data?.ServiceResult?.msgBody?.itemList ?? [];
+        const xml = response.data;
+        console.log('✅ 응답 XML 일부:\n', xml.slice(0, 500));
 
-        if (stations.length === 0) {
-          setError('정류장 정보를 찾을 수 없습니다.');
-          setLoading(false);
-          return;
-        }
+        const arrmsg1 = xml.match(/<arrmsg1>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/arrmsg1>/)?.[1];
+        const arrmsg2 = xml.match(/<arrmsg2>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/arrmsg2>/)?.[1];
 
-        const arsIdFetched = stations[0]?.arsId;
-        setArsId(arsIdFetched);
+        console.log('📦 파싱된 arrmsg1:', arrmsg1);
+        console.log('📦 파싱된 arrmsg2:', arrmsg2);
 
-        // 2. ARS ID로 도착 정보 조회
-        const arrivalResponse = await axios.get(
-          `http://ws.bus.go.kr/api/rest/stationinfo/getStationByUid`,
-          {
-            params: {
-              serviceKey: SERVICE_KEY,
-              arsId: arsIdFetched,
-            },
-          }
-        );
+        const results: BusArrivalInfo[] = [];
+        if (arrmsg1) results.push({ message: arrmsg1 });
+        if (arrmsg2) results.push({ message: arrmsg2 });
+        setData(results);
 
-        const items = arrivalResponse.data?.ServiceResult?.msgBody?.itemList ?? [];
+        // ✅ 가장 빠른 분 단위 추출
+        const messages = [arrmsg1, arrmsg2].filter(Boolean);
+        const minutesList = messages
+          .map((msg) => extractMinutesFromMessage(msg!))
+          .filter((m): m is number => m !== null);
 
-        const parsedData = items.map((item: any) => ({
-          routeId: item?.busRouteId,
-          routeName: item?.rtNm,
-          locationNo1: item?.stationNm1,
-          predictTime1: item?.arrmsg1,
-          remainSeatCnt1: item?.reride_Num1,
-        }));
-
-        setData(parsedData);
-
-        // 🎯 특정 노선 필터링
-        if (routeName) {
-          const matched = parsedData.find(
-            (bus) => bus.routeName === routeName
-          );
-          setMatchedBus(matched ?? null);
-        }
-      } catch (err) {
-        setError('API 요청 중 오류가 발생했습니다.');
-        console.error(err);
+        const minMinutes = minutesList.length > 0 ? Math.min(...minutesList) : null;
+        setSoonestMinutes(minMinutes);
+        console.log('⏱️ 도착까지 가장 빠른 시간:', minMinutes);
+      } catch (err: any) {
+        console.error('❌ useBusArrival API Error:', err.message);
+        setError(err.message);
+        setData([]);
+        setSoonestMinutes(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchArsIdAndArrival();
-  }, [startStop, routeName]);
+    fetchBusArrival();
+    interval = setInterval(fetchBusArrival, 20000); // 20초마다 자동 갱신
 
-  return { data, matchedBus, loading, error, arsId };
+    return () => clearInterval(interval);
+  }, [stId, busRouteId, ord]);
+
+  return { data, soonestMinutes, loading, error };
 }

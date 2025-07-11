@@ -1,11 +1,14 @@
-// components/Header.tsx
-// 목적지 및 도착시간 표시 헤더
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-export default function Header({ destination, eta }) {
+interface HeaderProps {
+  destination: string;
+  eta: string;
+}
+
+export default function Header({ destination, eta }: HeaderProps) {
   const router = useRouter();
 
   return (
@@ -17,7 +20,7 @@ export default function Header({ destination, eta }) {
       <View style={{ flex: 1 }} />
       <View style={{ alignItems: 'flex-end' }}>
         <Text style={styles.etaLabel}>도착 예정</Text>
-        <Text style={styles.etaTime}>{eta}</Text>
+        <Text style={styles.etaTime}>{eta || '계산 중...'}</Text>
       </View>
     </View>
   );

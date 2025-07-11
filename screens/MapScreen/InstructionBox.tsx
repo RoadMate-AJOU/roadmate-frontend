@@ -1,96 +1,175 @@
-// InstructionBox.tsx
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useBusArrival } from '../../hooks/useBusArrival';
+import { useSubwayArrival } from '../../hooks/useSubwayArrival';
 
 interface InstructionBoxProps {
   mode: 'walk' | 'bus' | 'subway';
-  busOrder?: number; // 첫 번째 버스인지 두 번째 버스인지
+  text?: string;
+  startStop?: string;
+  endStop?: string;
+  exitInfo?: string;
+  busOrder?: number;
+  stationId?: string;
+  busRouteId?: string;
+  stationOrder?: string;
+  routeName?: string;
 }
 
-export default function InstructionBox({ mode, busOrder = 0 }: InstructionBoxProps) {
-  if (mode !== 'bus') return null;
+export default function InstructionBox({
+  mode,
+  text,
+  startStop,
+  endStop,
+  exitInfo,
+  busOrder,
+  stationId,
+  busRouteId,
+  stationOrder,
+  routeName,
+}: InstructionBoxProps) {
+  const {
+    data: busData,
+    loading: busLoading,
+    error: busError,
+  } = useBusArrival(stationId ?? '', busRouteId ?? '', stationOrder ?? '');
 
-  if (busOrder === 0) {
-    return (
-      <View style={styles.box}>
-        <Text style={styles.title}>🚌 시흥초등학교</Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>707-1번 </Text>
-          <Text style={styles.busTime}>2분</Text>
-        </Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>707-1번 </Text>
-          <Text style={styles.busTime}>9분</Text>
-        </Text>
+  const {
+    data: subwayData,
+    loading: subwayLoading,
+    error: subwayError,
+  } = useSubwayArrival(mode === 'subway' ? startStop : undefined);
 
-        <Text style={styles.arrow}>▼</Text>
+  // 지하철 노선명 추출 ('수도권 3호선' → '3호선')
+  const trimTrainLine = (trainLine: string) => {
+    return trainLine.replace(/^수도권\s*/, '');
+  };
 
-        <Text style={styles.title}>🚌 삼성디지털프라자</Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>707-1번 </Text>
-          <Text style={styles.busTime}>19분</Text>
-        </Text>
-      </View>
-    );
-  } else if (busOrder === 1) {
-    return (
-      <View style={styles.box}>
-        <Text style={styles.title}>🚌 중앙시장</Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>13-4번 </Text>
-          <Text style={styles.busTime}>5분</Text>
-        </Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>13-4번 </Text>
-          <Text style={styles.busTime}>11분</Text>
-        </Text>
+  return (
+    <View style={styles.container}>
+      {/* 도보 안내 */}
+      {mode === 'walk' && text && (
+        <View style={styles.section}>
+          <Text style={styles.title}>🚶 도보 안내</Text>
+          <Text style={styles.info}>{text}</Text>
+        </View>
+      )}
 
-        <Text style={styles.arrow}>▼</Text>
+      {/* 버스 안내 */}
+      {mode === 'bus' && (
+        <View style={styles.section}>
+          <Text style={styles.title}>🚌 버스 {busOrder! + 1}번 구간</Text>
+          <Text style={styles.info}>정류장: {startStop} → {endStop}</Text>
+          {routeName && (
+            <Text style={styles.infoHighlight}>🚏 {routeName}번 버스를 타세요</Text>
+          )}
+          {busLoading && <ActivityIndicator size="small" color="#888" />}
+          {busError && <Text style={styles.error}>실시간 정보 없음</Text>}
+          {!busLoading && !busError && busData?.length > 0 && (
+            <View style={styles.realtimeBlock}>
+              <Text style={styles.refreshText}>🔁 20초마다 자동 갱신</Text>
+              {busData.slice(0, 2).map((info, idx) => (
+                <View key={idx} style={styles.bulletRow}>
+                  <Text style={styles.bullet}>🚌</Text>
+                  <Text style={styles.bulletText}>{info.message}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
-        <Text style={styles.title}>🚌 수원역</Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>13-4번 </Text>
-          <Text style={styles.busTime}>24분</Text>
-        </Text>
-      </View>
-    );
-  }
-
-  return null;
+      {/* 지하철 안내 */}
+      {mode === 'subway' && (
+        <View style={styles.section}>
+          <Text style={styles.title}>🚇 지하철 안내</Text>
+          <Text style={styles.info}>
+            {startStop} → {endStop} (출구 {exitInfo}번)
+          </Text>
+          {subwayData?.[0]?.trainLine && (
+            <Text style={styles.infoHighlight}>
+              🚇 {trimTrainLine(subwayData[0].trainLine)} 탑승하세요
+            </Text>
+          )}
+          {subwayLoading && <ActivityIndicator size="small" color="#888" />}
+          {subwayError && <Text style={styles.error}>실시간 정보 없음</Text>}
+          {!subwayLoading && !subwayError && subwayData?.length > 0 && (
+            <View style={styles.realtimeBlock}>
+              <Text style={styles.refreshText}>🔁 20초마다 자동 갱신</Text>
+              {subwayData.slice(0, 2).map((info, idx) => (
+                <View key={idx} style={styles.bulletRow}>
+                  <Text style={styles.bullet}>🚇</Text>
+                  <Text style={styles.bulletText}>
+                    {trimTrainLine(info.trainLine)} ({info.direction}) - {info.message}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  box: {
-    backgroundColor: '#FFFAF0',
-    borderColor: '#FF6A00',
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+  container: {
+    flex: 1,
+    paddingLeft: 12,
+    paddingTop: 8,
+  },
+  section: {
     marginBottom: 12,
-    marginLeft: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#F9F9F9',
+    borderRadius: 8,
+    borderColor: '#FF6A00',
+    borderWidth: 1,
   },
   title: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FF6A00',
     marginBottom: 4,
+  },
+  info: {
+    fontSize: 14,
+    color: '#111',
+    marginBottom: 4,
+  },
+  infoHighlight: {
+    fontSize: 14,
+    color: '#FF6A00',
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  realtimeBlock: {
     marginTop: 6,
+    paddingLeft: 4,
   },
-  busLine: {
-    fontSize: 13,
-    marginVertical: 1,
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 2,
   },
-  busNumber: {
-    color: '#000',
+  bullet: {
+    fontSize: 14,
+    marginRight: 6,
   },
-  busTime: {
-    color: '#FF6A00',
+  bulletText: {
+    fontSize: 14,
+    color: '#333',
+    flexShrink: 1,
   },
-  arrow: {
-    textAlign: 'center',
-    fontSize: 18,
-    color: '#FF6A00',
-    marginVertical: 4,
+  refreshText: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+  },
+  error: {
+    fontSize: 14,
+    color: 'red',
+    marginTop: 4,
   },
 });

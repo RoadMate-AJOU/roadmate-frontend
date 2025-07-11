@@ -1,4 +1,3 @@
-// screens/MapScreen/StepCard.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
@@ -6,19 +5,11 @@ import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 interface StepCardProps {
   type: 'walk' | 'bus' | 'subway';
   instruction: string;
-  route?: string; // "지선:3426" 형식
+  route?: string; // "지선:3426" 또는 "3호선:경복궁" 형식
   highlighted?: boolean;
 }
 
 export default function StepCard({ type, instruction, route, highlighted }: StepCardProps) {
-  const extractBusNumber = (route?: string): string | null => {
-    if (!route) return null;
-    const parts = route.split(':');
-    return parts.length === 2 ? parts[1] : null;
-  };
-
-  const busNumber = type === 'bus' ? extractBusNumber(route) : null;
-
   const getIcon = () => {
     const color = highlighted ? '#FFF' : '#FF6A00';
     switch (type) {
@@ -44,11 +35,7 @@ export default function StepCard({ type, instruction, route, highlighted }: Step
         bus: '버스',
         subway: '지하철',
       }[type]}</Text>
-      {type === 'bus' && busNumber && (
-        <Text style={[styles.busInfoText, highlighted && styles.highlightedText]}>
-          {`${busNumber}번 버스를 타세요`}
-        </Text>
-      )}
+
       {shouldShowInstruction && (
         <Text style={[styles.instructionText, highlighted && styles.highlightedText]}>
           {instruction}
@@ -104,6 +91,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#FF6A00',
     marginBottom: 2,
+    textAlign: 'center',
   },
   highlightedCard: {
     backgroundColor: '#FF6A00',
