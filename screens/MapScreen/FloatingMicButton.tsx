@@ -1,17 +1,16 @@
-// screens/MapScreen/FloatingMicButton.tsx
 import React, { useRef, useState, useEffect } from 'react';
 import { Animated, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Speech from 'expo-speech';
+import { router } from 'expo-router';
 
 export default function FloatingMicButton() {
-  const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
-  // 녹음 중일 때 펄스 애니메이션
   useEffect(() => {
-    if (isRecording) {
-      // 펄스 효과
+    if (isSpeaking) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -27,7 +26,6 @@ export default function FloatingMicButton() {
         ])
       ).start();
 
-      // 글로우 효과
       Animated.loop(
         Animated.sequence([
           Animated.timing(glowAnim, {
@@ -46,18 +44,71 @@ export default function FloatingMicButton() {
       pulseAnim.setValue(1);
       glowAnim.setValue(0);
     }
-  }, [isRecording]);
+  }, [isSpeaking]);
+
+  const sendToBackend = async (text: string) => {
+    try {
+      const res = await fetch('http://223.130.135.190:8080/api/poi/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'user-001',
+          text: text,
+        }),
+      });
+
+      const json = await res.json();
+      const { status, intent, responseMessage } = json;
+
+      if (status === 'COMPLETE') {
+        Speech.speak(responseMessage, {
+          language: 'ko-KR',
+          onDone: () => setIsSpeaking(false),
+        });
+      } else if (status === 'API_REQUIRED') {
+        if (intent === 'extract_route' || intent === 'research_route') {
+          Speech.speak(responseMessage, {
+            language: 'ko-KR',
+            onDone: () => {
+              setIsSpeaking(false);
+              router.push('/home');
+            },
+          });
+        } else if (
+          intent === 'real_time_bus_arrival' ||
+          intent === 'real_time_subway_arrival'
+        ) {
+          Speech.speak('500번 버스 도착 정보를 확인해볼게요.', {
+            language: 'ko-KR',
+            onDone: () => setIsSpeaking(false),
+          });
+        } else {
+          setIsSpeaking(false);
+        }
+      } else {
+        setIsSpeaking(false);
+      }
+    } catch (err) {
+      console.error('❌ 백엔드 통신 오류:', err);
+      setIsSpeaking(false);
+    }
+  };
 
   const handleMicPress = () => {
-    setIsRecording(!isRecording);
+    const dummyText = '고마워'; // 🔁 실제 음성 인식 결과로 대체 예정
+    setIsSpeaking(true);
 
-    if (!isRecording) {
-      console.log('🎤 음성 인식 시작');
-      // TODO: 음성 인식 시작 로직
-    } else {
-      console.log('🛑 음성 인식 중지');
-      // TODO: 음성 인식 중지 로직
-    }
+    Speech.speak(dummyText, {
+      language: 'ko-KR',
+      onDone: () => {
+        console.log('✅ TTS 완료, 백엔드 전송 시작');
+        sendToBackend(dummyText);
+      },
+      onError: (err) => {
+        console.error('❌ TTS 오류:', err);
+        setIsSpeaking(false);
+      },
+    });
   };
 
   const glowOpacity = glowAnim.interpolate({
@@ -72,8 +123,7 @@ export default function FloatingMicButton() {
 
   return (
     <View style={styles.container}>
-      {/* 글로우 효과 (녹음 중일 때만) */}
-      {isRecording && (
+      {isSpeaking && (
         <Animated.View
           style={[
             styles.glowEffect,
@@ -85,13 +135,12 @@ export default function FloatingMicButton() {
         />
       )}
 
-      {/* 메인 마이크 버튼 */}
       <Animated.View
         style={[
           styles.micButton,
           {
             transform: [{ scale: pulseAnim }],
-            backgroundColor: isRecording ? '#FF3B30' : '#FF5900',
+            backgroundColor: isSpeaking ? '#FF3B30' : '#FF5900',
           },
         ]}
       >
@@ -101,14 +150,13 @@ export default function FloatingMicButton() {
           activeOpacity={0.8}
         >
           <Ionicons
-            name={isRecording ? "stop" : "mic"}
-            size={28} // 아이콘 크기도 조정
+            name={isSpeaking ? 'stop' : 'mic'}
+            size={28}
             color="white"
           />
         </TouchableOpacity>
       </Animated.View>
 
-      {/* 버튼 주변 원형 테두리 (항상 표시) */}
       <View style={styles.borderRing} />
     </View>
   );
@@ -117,14 +165,14 @@ export default function FloatingMicButton() {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 20, // 상단으로 이동
-    left: 20, // 왼쪽으로 이동
+    top: 20,
+    left: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000, // 다른 요소들 위에 표시
+    zIndex: 1000,
   },
   micButton: {
-    width: 60, // 조금 작게 조정
+    width: 60,
     height: 60,
     borderRadius: 30,
     elevation: 8,
