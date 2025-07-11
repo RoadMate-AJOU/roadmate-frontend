@@ -1,5 +1,5 @@
 // services/api.js
-const BASE_URL = 'http://172.21.59.168:8080/api'; // 실제 백엔드 IP로 변경하세요
+const BASE_URL = 'http://127.0.0.1:8080/api'; // 실제 백엔드 IP로 변경하세요
 
 // 디버깅을 위한 로그 함수
 const debugLog = (tag, message, data = null) => {
