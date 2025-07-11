@@ -51,7 +51,17 @@
     },
     "android": {
       "package": "com.kangsubin.roadmate",
-      "permissions": ["RECORD_AUDIO", "INTERNET"]
+      "permissions": [
+        "RECORD_AUDIO",
+        "INTERNET",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "config" : {
+        "googleMaps": {
+          "apiKey": "AIzaSyBnq-rvTryXcM1xgwovc3e6wk_8mERo0PU"
+        }
+      }
     }
   }
 }

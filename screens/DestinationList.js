@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
-  Alert
+  Alert,
+  Platform,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -20,12 +22,11 @@ export default function DestinationList() {
   const [loading, setLoading] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [initialized, setInitialized] = useState(false);
-  const [routeSearching, setRouteSearching] = useState(null); // 경로 검색 중인 목적지 ID
+  const [routeSearching, setRouteSearching] = useState(null);
   const { location } = useLocation();
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  // POI 결과 처리 함수를 useCallback으로 메모화
   const processPoiResults = useCallback((results) => {
     const parsedList = results.map((place, idx) => ({
       id: `${place.name}-${idx}-${Date.now()}`,
@@ -37,37 +38,22 @@ export default function DestinationList() {
       lon: place.longitude,
       tel: place.tel || '',
     }));
-
     setPoiList(parsedList);
   }, []);
 
-  // POI 검색 함수를 useCallback으로 메모화
   const searchPOI = useCallback(async (keyword) => {
-    if (!keyword || !keyword.trim()) {
-      return;
-    }
-
+    if (!keyword?.trim()) return;
     const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
-
     try {
       setLoading(true);
-      console.log('🔍 DestinationList에서 POI 검색:', keyword);
-
-      const response = await poiService.searchPOI(
-        keyword.trim(),
-        currentLocation.latitude,
-        currentLocation.longitude
-      );
-
-      if (response.places && response.places.length > 0) {
+      const response = await poiService.searchPOI(keyword.trim(), currentLocation.latitude, currentLocation.longitude);
+      if (response.places?.length > 0) {
         processPoiResults(response.places);
-        console.log('✅ POI 검색 완료:', response.places.length, '개 결과');
       } else {
         setPoiList([]);
         Alert.alert('검색 결과 없음', `"${keyword}"에 대한 검색 결과가 없습니다.`);
       }
     } catch (error) {
-      console.error('❌ POI 검색 오류:', error);
       Alert.alert('검색 오류', '장소 검색 중 오류가 발생했습니다.');
       loadSampleData();
     } finally {
@@ -75,12 +61,10 @@ export default function DestinationList() {
     }
   }, [location, processPoiResults]);
 
-  // 샘플 데이터 로드 함수를 useCallback으로 메모화
   const loadSampleData = useCallback(() => {
     try {
       const samplePOI = require('../data/tmap_POI_sample.json');
       const rawList = samplePOI?.searchPoiInfo?.pois?.poi ?? [];
-
       const parsedList = rawList.map((poi, idx) => ({
         id: `${poi.id}-${poi.navSeq}-${idx}-${Date.now()}`,
         name: poi.name,
@@ -90,35 +74,28 @@ export default function DestinationList() {
         lat: parseFloat(poi.frontLat),
         lon: parseFloat(poi.frontLon),
       }));
-
       setPoiList(parsedList);
       setSearchKeyword('샘플 데이터');
     } catch (error) {
-      console.error('❌ 샘플 데이터 로드 오류:', error);
       setPoiList([]);
     }
   }, []);
 
-  // useEffect를 한 번만 실행되도록 수정
   useEffect(() => {
-    if (initialized) {
-      return;
-    }
+    loadSampleData();
+    setInitialized(true);
+  }, [loadSampleData]);
 
-    console.log('🎯 DestinationList params:', params);
-
+  useEffect(() => {
+    if (initialized) return;
     if (params.poiResults) {
       try {
         const parsedResults = JSON.parse(params.poiResults);
         const keyword = params.searchKeyword || '';
-
-        console.log('✅ Home에서 전달받은 POI 결과:', parsedResults.length, '개');
-
         setSearchKeyword(keyword);
         processPoiResults(parsedResults);
         setInitialized(true);
       } catch (error) {
-        console.error('❌ POI 결과 파싱 오류:', error);
         loadSampleData();
         setInitialized(true);
       }
@@ -130,85 +107,50 @@ export default function DestinationList() {
       loadSampleData();
       setInitialized(true);
     }
-  }, [params.poiResults, params.searchKeyword, initialized, processPoiResults, searchPOI, loadSampleData]);
+  }, [params, initialized, processPoiResults, searchPOI, loadSampleData]);
 
-  // 경로 검색 및 지도 이동
   const handleSelectDestination = useCallback(async (item) => {
-    console.log('🎯 목적지 선택됨:', item.name);
-
     const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
-
-    // 경로 검색 로딩 시작
     setRouteSearching(item.id);
-
     try {
-      console.log('🔍 경로 검색 시작...');
-
-      // 경로 API 호출
       const routeResponse = await routeService.searchRoute(
-        currentLocation.latitude,
-        currentLocation.longitude,
-        item.lat,
-        item.lon,
-        '현재 위치',
-        item.name
+        currentLocation.latitude, currentLocation.longitude, item.lat, item.lon, '현재 위치', item.name
       );
-
-      console.log('✅ 경로 검색 완료:', routeResponse);
-
-      // 경로 정보와 함께 지도 화면으로 이동
       router.push({
         pathname: '/map',
         params: {
-          // 목적지 정보
           destinationName: item.name,
           destinationLat: item.lat,
           destinationLon: item.lon,
           destinationAddress: item.address,
-
-          // 출발지 정보
           startLat: currentLocation.latitude,
           startLon: currentLocation.longitude,
           startName: '현재 위치',
-
-          // 경로 정보 (JSON 문자열로 전달)
           routeData: JSON.stringify(routeResponse),
-
-          // 기본 정보
           totalDistance: routeResponse.totalDistance || 0,
           totalTime: routeResponse.totalTime || 0,
           totalFare: routeResponse.totalFare || 0,
-        }
+        },
       });
-
     } catch (error) {
-      console.error('❌ 경로 검색 실패:', error);
-
-      // 경로 검색 실패 시 기본 지도로 이동
-      Alert.alert(
-        '경로 검색 실패',
-        '경로를 찾을 수 없습니다. 기본 지도로 이동합니다.',
-        [
-          {
-            text: '확인',
-            onPress: () => {
-              router.push({
-                pathname: '/map',
-                params: {
-                  destinationName: item.name,
-                  destinationLat: item.lat,
-                  destinationLon: item.lon,
-                  destinationAddress: item.address,
-                  startLat: currentLocation.latitude,
-                  startLon: currentLocation.longitude,
-                  startName: '현재 위치',
-                  routeError: 'true'
-                }
-              });
-            }
-          }
-        ]
-      );
+      Alert.alert('경로 검색 실패', '경로를 찾을 수 없습니다. 기본 지도로 이동합니다.', [{
+        text: '확인',
+        onPress: () => {
+          router.push({
+            pathname: '/map',
+            params: {
+              destinationName: item.name,
+              destinationLat: item.lat,
+              destinationLon: item.lon,
+              destinationAddress: item.address,
+              startLat: currentLocation.latitude,
+              startLon: currentLocation.longitude,
+              startName: '현재 위치',
+              routeError: 'true'
+            },
+          });
+        }
+      }]);
     } finally {
       setRouteSearching(null);
     }
@@ -216,10 +158,7 @@ export default function DestinationList() {
 
   const renderItem = useCallback(({ item }) => (
     <TouchableOpacity
-      style={[
-        styles.card,
-        routeSearching === item.id && styles.cardSearching
-      ]}
+      style={[styles.card, routeSearching === item.id && styles.cardSearching]}
       onPress={() => handleSelectDestination(item)}
       disabled={routeSearching === item.id}
     >
@@ -233,15 +172,13 @@ export default function DestinationList() {
           <Ionicons name="location-outline" size={14} color="#666" />
           <Text style={styles.address}>{item.address}</Text>
         </View>
-        {item.tel ? (
+        {!!item.tel && (
           <View style={styles.addressRow}>
             <Ionicons name="call-outline" size={14} color="#666" />
             <Text style={styles.address}>{item.tel}</Text>
           </View>
-        ) : null}
+        )}
       </View>
-
-      {/* 경로 검색 중 표시 */}
       {routeSearching === item.id && (
         <View style={styles.searchingOverlay}>
           <ActivityIndicator size="small" color="#FF5900" />
@@ -251,37 +188,32 @@ export default function DestinationList() {
     </TouchableOpacity>
   ), [handleSelectDestination, routeSearching]);
 
-  const keyExtractor = useCallback((item) => item.id, []);
-
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF5900" />
         <Text style={styles.loadingText}>"{searchKeyword}" 검색 중...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* 헤더 */}
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.replace('/(tabs)')}>
           <Ionicons name="arrow-back" size={24} color="#FF5900" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {searchKeyword ? `"${searchKeyword}" 검색 결과` : '목적지 목록'}
-        </Text>
+        <Text style={styles.headerTitle}>{searchKeyword ? `"${searchKeyword}" 검색 결과` : '목적지 목록'}</Text>
         <View style={{ width: 24 }} />
       </View>
-
       {poiList.length > 0 ? (
         <FlatList
           data={poiList}
-          keyExtractor={keyExtractor}
+          keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          bounces={true}
           removeClippedSubviews={true}
           maxToRenderPerBatch={10}
           windowSize={10}
@@ -293,14 +225,10 @@ export default function DestinationList() {
           <Text style={styles.emptySubText}>다른 키워드로 검색해보세요</Text>
         </View>
       )}
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.replace('/(tabs)')}
-      >
+      <TouchableOpacity style={styles.button} onPress={() => router.replace('/(tabs)')}>
         <Text style={styles.buttonText}>목적지 다시 설정할래요!</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -318,13 +246,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: Platform.OS === 'ios' ? '600' : 'bold',
     color: '#333',
     flex: 1,
     textAlign: 'center',
@@ -350,11 +277,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#FA812F',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#FA812F',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(250,129,47,0.15)',
+      },
+    }),
     position: 'relative',
   },
   cardSearching: {
@@ -433,17 +368,23 @@ const styles = StyleSheet.create({
   },
   button: {
     position: 'absolute',
-    bottom: 30,
+    bottom: Platform.OS === 'ios' ? 30 : 20,
     alignSelf: 'center',
     backgroundColor: '#FF5900',
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 30,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   buttonText: {
     color: '#fff',
