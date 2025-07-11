@@ -1,72 +1,182 @@
 // screens/MapScreen/TransportSteps.tsx
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import StepCard from './StepCard';
-import InstructionBox from './InstructionBox';
-import tmapData from '../../constants/routeData';
 import { useLocation } from '../../contexts/LocationContext';
+import styles from './styles';
 
 export default function TransportSteps() {
   const { currentLegIndex } = useLocation();
-  const legs = tmapData?.metaData?.plan?.itineraries?.[0]?.legs ?? [];
+  const params = useLocalSearchParams();
+  const [stableSteps, setStableSteps] = useState([]); // 안정화된 스텝 데이터
+  const lastLegIndex = useRef(-1);
 
-  let busCount = 0; // 각 버스 구간의 순서 추적
+  // 주요 이동수단만 추출 (이모티콘 기준)
+  const getMainTransportSteps = () => {
+    if (params.routeData) {
+      try {
+        const routeData = JSON.parse(params.routeData);
+        return parseApiMainSteps(routeData);
+      } catch (error) {
+        console.warn('TransportSteps: API 데이터 파싱 실패', error);
+        return getSampleMainSteps();
+      }
+    }
+    return getSampleMainSteps();
+  };
+
+  // 초기 데이터 로드
+  useEffect(() => {
+    const initialSteps = getMainTransportSteps();
+    setStableSteps(initialSteps);
+  }, [params.routeData]);
+
+  // currentLegIndex 변경 시에만 highlighted 상태 업데이트
+  useEffect(() => {
+    if (currentLegIndex === lastLegIndex.current) return;
+
+    lastLegIndex.current = currentLegIndex;
+
+    setStableSteps(prevSteps =>
+      prevSteps.map((step, index) => ({
+        ...step,
+        highlighted: step.originalIndex === currentLegIndex || index === currentLegIndex
+      }))
+    );
+  }, [currentLegIndex]);
+
+  // API 데이터에서 이모티콘 기준으로 주요 이동수단 추출
+  const parseApiMainSteps = (routeData) => {
+    if (!routeData.guides || routeData.guides.length === 0) {
+      return getSampleMainSteps();
+    }
+
+    const mainSteps = [];
+
+    routeData.guides.forEach((guide, index) => {
+      // 🎯 이모티콘이 있는 주요 안내만 추출
+      if (guide.guidance && (
+        guide.guidance.includes('🚶') ||
+        guide.guidance.includes('🚌') ||
+        guide.guidance.includes('🚇') ||
+        guide.guidance.includes('🚄') ||
+        guide.guidance.includes('🚐')
+      )) {
+        const { transportType, time, routeName, busNumber, guidance } = guide;
+
+        let type: 'walk' | 'bus' | 'subway' = 'walk';
+        if (transportType === 'BUS' || guidance.includes('🚌') || guidance.includes('🚐')) {
+          type = 'bus';
+        } else if (transportType === 'SUBWAY' || guidance.includes('🚇') || guidance.includes('🚄')) {
+          type = 'subway';
+        }
+
+        // 시간 표시 (분 단위)
+        const timeText = time ? `${Math.ceil(time / 60)}분` : '';
+
+        // 노선 정보
+        const route = busNumber || routeName || '';
+
+        mainSteps.push({
+          type,
+          instruction: timeText,
+          highlighted: index === currentLegIndex,
+          route: route ? `노선:${route}` : undefined,
+          emoji: getEmojiFromGuidance(guidance),
+          fullGuidance: guidance,
+          originalIndex: index // 원본 인덱스 저장
+        });
+      }
+    });
+
+    console.log(`📋 주요 이동수단 ${mainSteps.length}개 추출됨`);
+    return mainSteps;
+  };
+
+  // 안내 문구에서 이모티콘 추출
+  const getEmojiFromGuidance = (guidance) => {
+    if (guidance.includes('🚶')) return '🚶';
+    if (guidance.includes('🚌')) return '🚌';
+    if (guidance.includes('🚇')) return '🚇';
+    if (guidance.includes('🚄')) return '🚄';
+    if (guidance.includes('🚐')) return '🚐';
+    return '🚶'; // 기본값
+  };
+
+  // 샘플 데이터의 주요 이동수단
+  const getSampleMainSteps = () => {
+    return [
+      {
+        type: 'walk',
+        instruction: '8분',
+        highlighted: currentLegIndex === 0,
+        emoji: '🚶',
+        fullGuidance: '🚶 시흥초등학교까지 도보',
+        originalIndex: 0
+      },
+      {
+        type: 'bus',
+        instruction: '20분',
+        highlighted: currentLegIndex === 1,
+        route: '노선:707-1',
+        emoji: '🚌',
+        fullGuidance: '🚌 707-1번 버스 탑승',
+        originalIndex: 1
+      },
+      {
+        type: 'walk',
+        instruction: '5분',
+        highlighted: currentLegIndex === 2,
+        emoji: '🚶',
+        fullGuidance: '🚶 중앙시장까지 도보',
+        originalIndex: 2
+      },
+      {
+        type: 'bus',
+        instruction: '30분',
+        highlighted: currentLegIndex === 3,
+        route: '노선:13-4',
+        emoji: '🚌',
+        fullGuidance: '🚌 13-4번 버스 탑승',
+        originalIndex: 3
+      },
+      {
+        type: 'walk',
+        instruction: '4분',
+        highlighted: currentLegIndex === 4,
+        emoji: '🚶',
+        fullGuidance: '🚶 목적지까지 도보',
+        originalIndex: 4
+      }
+    ];
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {legs.map((leg, index) => {
-        const rawMode = leg?.mode?.toUpperCase();
-        let mode: 'walk' | 'bus' | 'subway' = 'walk';
-
-        if (rawMode === 'BUS') mode = 'bus';
-        else if (rawMode === 'SUBWAY') mode = 'subway';
-
-        const duration = leg.sectionTime ?? 0;
-        const description = leg.steps?.[0]?.description ?? '';
-        const startStop = leg?.start?.name ?? '';
-        const endStop = leg?.end?.name ?? '';
-        const routeName = leg.route?.includes(':') ? leg.route.split(':')[1] : leg.route;
-
-        const instructionBoxProps =
-          mode === 'walk'
-            ? { mode, text: description }
-            : { mode, startStop, endStop, exitInfo: '2', busOrder: busCount };
-
-        const stepCard = (
+    <View style={styles.transportStepsContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={transportStepsStyles.scrollContent}
+      >
+        {stableSteps.map((step, index) => (
           <StepCard
-            type={mode}
-            instruction={`${Math.floor(duration / 60)}분`}
-            highlighted={index === currentLegIndex} // 수정된 부분
-            route={leg.route}
+            key={`step-${step.originalIndex || index}`}
+            type={step.type}
+            instruction={step.instruction}
+            highlighted={step.highlighted}
+            route={step.route}
+            emoji={step.emoji}
+            fullGuidance={step.fullGuidance}
           />
-        );
-
-        const instructionBox = <InstructionBox {...instructionBoxProps} />;
-
-        const row = (
-          <View key={index} style={styles.row}>
-            {stepCard}
-            {instructionBox}
-          </View>
-        );
-
-        if (mode === 'bus') busCount++; // 다음 busOrder용 증가
-
-        return row;
-      })}
-    </ScrollView>
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    paddingTop: 16,
-    paddingBottom: 40,
-    paddingHorizontal: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+const transportStepsStyles = StyleSheet.create({
+  scrollContent: {
+    paddingHorizontal: 4,
   },
 });

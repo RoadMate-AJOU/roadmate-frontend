@@ -1,5 +1,5 @@
 // services/api.js
-const BASE_URL = 'http://172.21.59.168:8080/api'; // 실제 백엔드 IP로 변경하세요
+const BASE_URL = 'http://172.21.77.195:8080/api'; // 실제 백엔드 IP로 변경하세요
 
 // 디버깅을 위한 로그 함수
 const debugLog = (tag, message, data = null) => {
@@ -54,7 +54,7 @@ export const gptService = {
 export const poiService = {
   searchPOI: async (keyword, latitude, longitude) => {
     try {
-      debugLog('POI_SEARCH', '🔍 POI 검색 시작 (FINAL VERSION)', { keyword, latitude, longitude });
+      debugLog('POI_SEARCH', '🔍 POI 검색 시작', { keyword, latitude, longitude });
 
       const url = `${BASE_URL}/poi/search`;
       debugLog('POI_REQUEST', '📍 POI API URL', { url });

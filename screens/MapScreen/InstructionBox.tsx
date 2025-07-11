@@ -1,96 +1,146 @@
-// InstructionBox.tsx
-import React from 'react';
+// screens/MapScreen/InstructionBox.tsx
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { useLocation } from '../../contexts/LocationContext';
 
-interface InstructionBoxProps {
-  mode: 'walk' | 'bus' | 'subway';
-  busOrder?: number; // 첫 번째 버스인지 두 번째 버스인지
-}
+export default function InstructionBox() {
+  const [currentInstruction, setCurrentInstruction] = useState('🚶‍♂️ 목적지까지 안내 중');
+  const { currentLegIndex } = useLocation();
+  const params = useLocalSearchParams();
+  const lastLegIndex = useRef(-1);
+  const hasApiData = useRef(false);
+  const emojiGuides = useRef([]);
 
-export default function InstructionBox({ mode, busOrder = 0 }: InstructionBoxProps) {
-  if (mode !== 'bus') return null;
+  // API 데이터가 있으면 사용, 없으면 기본 메시지
+  useEffect(() => {
+    if (params.routeData && !hasApiData.current) {
+      try {
+        const routeData = JSON.parse(params.routeData);
+        parseEmojiGuides(routeData);
+        hasApiData.current = true;
+        updateInstructionFromApi(0);
+        console.log('📝 InstructionBox: API 데이터로 초기화 완료');
+      } catch (error) {
+        console.warn('InstructionBox: API 데이터 파싱 실패', error);
+        setCurrentInstruction('🚶‍♂️ 목적지까지 안내 중입니다');
+        hasApiData.current = false;
+      }
+    } else if (!params.routeData && !hasApiData.current) {
+      hasApiData.current = false;
+      updateInstructionFromSample(0);
+      console.log('📝 InstructionBox: 샘플 데이터로 초기화 완료');
+    }
+  }, [params.routeData]);
 
-  if (busOrder === 0) {
-    return (
-      <View style={styles.box}>
-        <Text style={styles.title}>🚌 시흥초등학교</Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>707-1번 </Text>
-          <Text style={styles.busTime}>2분</Text>
-        </Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>707-1번 </Text>
-          <Text style={styles.busTime}>9분</Text>
-        </Text>
+  // currentLegIndex가 변경될 때만 업데이트
+  useEffect(() => {
+    if (currentLegIndex === lastLegIndex.current) return;
 
-        <Text style={styles.arrow}>▼</Text>
+    lastLegIndex.current = currentLegIndex;
 
-        <Text style={styles.title}>🚌 삼성디지털프라자</Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>707-1번 </Text>
-          <Text style={styles.busTime}>19분</Text>
-        </Text>
-      </View>
-    );
-  } else if (busOrder === 1) {
-    return (
-      <View style={styles.box}>
-        <Text style={styles.title}>🚌 중앙시장</Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>13-4번 </Text>
-          <Text style={styles.busTime}>5분</Text>
-        </Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>13-4번 </Text>
-          <Text style={styles.busTime}>11분</Text>
-        </Text>
+    if (hasApiData.current) {
+      updateInstructionFromApi(currentLegIndex);
+    } else {
+      updateInstructionFromSample(currentLegIndex);
+    }
+  }, [currentLegIndex]);
 
-        <Text style={styles.arrow}>▼</Text>
+  // 이모티콘 가이드들만 추출해서 저장
+  const parseEmojiGuides = (routeData) => {
+    const guides = [];
 
-        <Text style={styles.title}>🚌 수원역</Text>
-        <Text style={styles.busLine}>
-          <Text style={styles.busNumber}>13-4번 </Text>
-          <Text style={styles.busTime}>24분</Text>
-        </Text>
-      </View>
-    );
-  }
+    routeData.guides?.forEach((guide, index) => {
+      if (guide.guidance && (
+        guide.guidance.includes('🚶') ||
+        guide.guidance.includes('🚌') ||
+        guide.guidance.includes('🚇') ||
+        guide.guidance.includes('🚄') ||
+        guide.guidance.includes('🚐')
+      )) {
+        guides.push({
+          index: guides.length,
+          originalIndex: index,
+          guidance: guide.guidance,
+          transportType: guide.transportType,
+          busNumber: guide.busNumber,
+          routeName: guide.routeName
+        });
+      }
+    });
 
-  return null;
+    emojiGuides.current = guides;
+    console.log(`📝 이모티콘 가이드 ${guides.length}개 파싱 완료`);
+  };
+
+  const updateInstructionFromApi = (legIndex) => {
+    if (emojiGuides.current.length > 0) {
+      const currentGuide = emojiGuides.current[legIndex] || emojiGuides.current[0];
+      const instruction = formatSimpleInstruction(currentGuide);
+      setCurrentInstruction(instruction);
+    } else {
+      setCurrentInstruction('🚶‍♂️ 목적지로 이동 중');
+    }
+  };
+
+  const updateInstructionFromSample = (legIndex) => {
+    const sampleInstructions = [
+      '🚶‍♂️ 시흥초등학교로 이동',
+      '🚌 707-1번 버스 승차',
+      '🚶‍♂️ 중앙시장으로 이동',
+      '🚌 13-4번 버스 승차',
+      '🚶‍♂️ 목적지로 이동'
+    ];
+
+    const instruction = sampleInstructions[legIndex] || sampleInstructions[0];
+    setCurrentInstruction(instruction);
+  };
+
+  const formatSimpleInstruction = (guide) => {
+    if (!guide) return '🚶‍♂️ 이동 중';
+
+    const { transportType, busNumber, routeName, guidance } = guide;
+
+    // 이모티콘이 포함된 간단한 안내만 추출
+    if (guidance.includes('🚶')) {
+      // 도보 안내에서 목적지만 추출
+      if (guidance.includes('까지')) {
+        const destination = guidance.split('까지')[0].replace('🚶', '').trim();
+        return `🚶‍♂️ ${destination}으로 이동`;
+      }
+      return '🚶‍♂️ 도보 이동 중';
+    }
+
+    if (guidance.includes('🚌')) {
+      const busInfo = busNumber || routeName || '버스';
+      return `🚌 ${busInfo} 탑승`;
+    }
+
+    if (guidance.includes('🚇') || guidance.includes('🚄')) {
+      const subwayInfo = routeName || '지하철';
+      return `🚇 ${subwayInfo} 탑승`;
+    }
+
+    return '🚶‍♂️ 이동 중';
+  };
+
+  return;
 }
 
 const styles = StyleSheet.create({
-  box: {
-    backgroundColor: '#FFFAF0',
-    borderColor: '#FF6A00',
-    borderWidth: 1.5,
+  instructionBox: {
+    position: 'absolute',
+    top: 110,
+    left: 20,
+    right: 20,
+    backgroundColor: '#FFF1E6',
     borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    marginLeft: 10,
+    padding: 12,
   },
-  title: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
-    marginTop: 6,
-  },
-  busLine: {
-    fontSize: 13,
-    marginVertical: 1,
-  },
-  busNumber: {
-    color: '#000',
-  },
-  busTime: {
-    color: '#FF6A00',
-  },
-  arrow: {
+  instructionText: {
+    fontSize: 27,
+    fontWeight: 'bold',
+    color: '#FF3B30',
     textAlign: 'center',
-    fontSize: 18,
-    color: '#FF6A00',
-    marginVertical: 4,
   },
 });
