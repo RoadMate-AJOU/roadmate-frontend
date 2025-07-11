@@ -1,124 +1,167 @@
 // screens/MapScreen/StepCard.tsx
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface StepCardProps {
   type: 'walk' | 'bus' | 'subway';
   instruction: string;
-  route?: string; // "지선:3426" 형식
+  route?: string;
   highlighted?: boolean;
+  emoji?: string;
+  fullGuidance?: string;
 }
 
-export default function StepCard({ type, instruction, route, highlighted }: StepCardProps) {
-  const extractBusNumber = (route?: string): string | null => {
-    if (!route) return null;
-    const parts = route.split(':');
-    return parts.length === 2 ? parts[1] : null;
-  };
+export default function StepCard({
+  type,
+  instruction,
+  route,
+  highlighted,
+  emoji = '🚶',
+  fullGuidance
+}: StepCardProps) {
 
-  const busNumber = type === 'bus' ? extractBusNumber(route) : null;
-
-  const getIcon = () => {
-    const color = highlighted ? '#FFF' : '#FF6A00';
+  const getTypeText = () => {
     switch (type) {
-      case 'walk':
-        return <Ionicons name="walk" size={24} color={color} />;
-      case 'bus':
-        return <MaterialIcons name="directions-bus" size={24} color={color} />;
-      case 'subway':
-        return <FontAwesome5 name="subway" size={22} color={color} />;
-      default:
-        return null;
+      case 'walk': return '도보';
+      case 'bus': return '버스';
+      case 'subway': return '지하철';
+      default: return '이동';
     }
   };
 
-  const shouldShowInstruction = highlighted || type !== 'walk';
+  const getBusNumber = () => {
+    if (!route) return null;
+    // "노선:13-4" → "13-4"
+    if (route.includes(':')) {
+      return route.split(':')[1];
+    }
+    return route;
+  };
+
+  const busNumber = type === 'bus' ? getBusNumber() : null;
 
   return (
-    <View style={[styles.card, highlighted && styles.highlightedCard]}>
-      <Text style={[styles.label, highlighted && styles.highlightedText]}>다음 이동수단</Text>
-      <View style={[styles.iconCircle, highlighted && styles.highlightedCircle]}>{getIcon()}</View>
-      <Text style={[styles.typeText, highlighted && styles.highlightedText]}>{{
-        walk: '도보',
-        bus: '버스',
-        subway: '지하철',
-      }[type]}</Text>
+    <TouchableOpacity
+      style={[styles.card, highlighted && styles.highlightedCard]}
+      activeOpacity={0.8}
+    >
+      {/* 다음 이동수단 라벨 */}
+      <Text style={[styles.label, highlighted && styles.highlightedText]}>
+        {highlighted ? '현재 이동수단' : '다음 이동수단'}
+      </Text>
+
+      {/* 큰 이모티콘 */}
+      <View style={[styles.emojiCircle, highlighted && styles.highlightedCircle]}>
+        <Text style={styles.emojiText}>{emoji}</Text>
+      </View>
+
+      {/* 이동수단 타입 */}
+      <Text style={[styles.typeText, highlighted && styles.highlightedText]}>
+        {getTypeText()}
+      </Text>
+
+      {/* 버스 번호 정보 */}
       {type === 'bus' && busNumber && (
         <Text style={[styles.busInfoText, highlighted && styles.highlightedText]}>
-          {`${busNumber}번 버스를 타세요`}
+          {`${busNumber}번`}
         </Text>
       )}
-      {shouldShowInstruction && (
-        <Text style={[styles.instructionText, highlighted && styles.highlightedText]}>
-          {instruction}
-        </Text>
-      )}
-    </View>
+
+      {/* 소요 시간 */}
+      <Text style={[styles.instructionText, highlighted && styles.highlightedText]}>
+        {instruction}
+      </Text>
+
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    width: 120,
-    height: 180,
+    width: 140,
+    height: 170,
+    marginBottom:13,
     borderWidth: 2,
     borderColor: '#FF6A00',
     borderRadius: 16,
     alignItems: 'center',
     backgroundColor: '#fff',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 8,
     marginHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    justifyContent: 'space-between', // 공간 균등 분배
+    transform: [{ scale: 0.9 }],
   },
   label: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
-    marginBottom: 6,
+    marginBottom: 6, // 여백 줄임
     color: '#111',
+    textAlign: 'center',
   },
-  iconCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    borderWidth: 1.5,
+  emojiCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
     borderColor: '#FF6A00',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 6, // 여백 줄임
+    backgroundColor: '#fff',
+  },
+  emojiText: {
+    fontSize: 32,
   },
   typeText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 23,
+    fontWeight: '600',
     color: '#111',
-    marginBottom: 4,
+    marginBottom: 2, // 여백 줄임
   },
   instructionText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 4,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FF6A00',
+    marginTop: 2, // 여백 줄임
+    marginBottom: 2, // 아래 여백 추가해서 조절
   },
   busInfoText: {
-    fontSize: 12,
+    fontSize: 17,
     fontWeight: '500',
     color: '#FF6A00',
-    marginBottom: 2,
+    marginBottom: 1, // 여백 줄임
   },
+  fullGuidanceText: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 2, // 여백 줄임
+    lineHeight: 12,
+    flex: 1, // 남은 공간 사용
+  },
+
+  // 강조 스타일 - 현재 이동수단 (배경색 반전)
   highlightedCard: {
     backgroundColor: '#FF6A00',
     borderColor: '#FF6A00',
-    borderWidth: 2,
     shadowColor: '#FF6A00',
     shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    elevation: 8,
+    transform: [{ scale: 1.0 }],
   },
   highlightedText: {
     color: '#FFF',
   },
   highlightedCircle: {
     borderColor: '#FFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
 });

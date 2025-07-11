@@ -54,7 +54,7 @@ export const gptService = {
 export const poiService = {
   searchPOI: async (keyword, latitude, longitude) => {
     try {
-      debugLog('POI_SEARCH', '🔍 POI 검색 시작 (FINAL VERSION)', { keyword, latitude, longitude });
+      debugLog('POI_SEARCH', '🔍 POI 검색 시작', { keyword, latitude, longitude });
 
       const url = `${BASE_URL}/poi/search`;
       debugLog('POI_REQUEST', '📍 POI API URL', { url });

@@ -10,16 +10,18 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from 'expo-speech-recognition';
+// 음성 인식 임포트를 주석 처리
+// import {
+//   ExpoSpeechRecognitionModule,
+//   useSpeechRecognitionEvent,
+// } from 'expo-speech-recognition';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useLocation } from '../contexts/LocationContext';
 import { poiService, gptService } from '../services/api'; // API 서비스 추가
 
-const ENABLE_VOICE = true;
+// 음성 인식 비활성화
+const ENABLE_VOICE = false;
 
 export default function Home() {
   const [recognizedText, setRecognizedText] = useState('');
@@ -69,7 +71,7 @@ export default function Home() {
     }
   };
 
-  // 음성 검색 처리 함수
+  // 음성 검색 처리 함수 (현재 비활성화)
   const handleVoiceSearch = async (voiceText) => {
     if (!voiceText.trim()) {
       Alert.alert('알림', '음성이 인식되지 않았습니다. 다시 시도해주세요.');
@@ -140,13 +142,15 @@ export default function Home() {
     if (!ENABLE_VOICE) {
       // 음성 기능이 비활성화된 경우 텍스트 검색 수행
       if (recognizedText.trim()) {
-        handleVoiceSearch(recognizedText);
+        handleTextSearch();
       } else {
-        Alert.alert('알림', '검색할 목적지를 입력해주세요.');
+        Alert.alert('알림', '음성 인식이 비활성화되어 있습니다. 텍스트로 검색해주세요.');
       }
       return;
     }
 
+    // 음성 인식 코드는 주석 처리 (네이티브 모듈 필요)
+    /*
     const granted = await requestAudioPermission();
     if (!granted) {
       appendLog('❌ 마이크 권한 거부됨');
@@ -166,9 +170,14 @@ export default function Home() {
     } catch (error) {
       appendLog(`❌ 음성 인식 오류: ${JSON.stringify(error)}`);
     }
+    */
   };
 
   const stopRecognizing = async () => {
+    if (!ENABLE_VOICE) return;
+
+    // 음성 인식 중지 코드도 주석 처리
+    /*
     try {
       await ExpoSpeechRecognitionModule.stop();
       appendLog('⏹️ 음성 인식 중지됨');
@@ -176,8 +185,11 @@ export default function Home() {
     } catch (e) {
       appendLog(`❌ 중지 오류: ${JSON.stringify(e)}`);
     }
+    */
   };
 
+  // 음성 인식 이벤트 리스너들도 주석 처리
+  /*
   useSpeechRecognitionEvent("result", (event) => {
     const transcript = event.results?.[0]?.transcript;
     if (transcript) {
@@ -208,6 +220,7 @@ export default function Home() {
     appendLog(`❌ 인식 에러: ${event.message}`);
     setIsListening(false);
   });
+  */
 
   return (
     <View style={styles.container}>
@@ -229,9 +242,11 @@ export default function Home() {
 
       <View style={styles.guideTextContainer}>
         <Text style={styles.guideText}>
-          {isSearching ? '검색 중...' : '마이크를 누르고 목적지를 검색해 주세요.'}
+          {isSearching ? '검색 중...' : ENABLE_VOICE ? '마이크를 누르고 목적지를 검색해 주세요.' : '텍스트로 목적지를 검색해 주세요.'}
         </Text>
-        <Text style={styles.exampleText}>예) "서울역까지 가고 싶어"</Text>
+        <Text style={styles.exampleText}>
+          {ENABLE_VOICE ? '예) "서울역까지 가고 싶어"' : '예) "서울역"'}
+        </Text>
       </View>
 
       {/* 마이크 버튼 */}
@@ -239,7 +254,8 @@ export default function Home() {
         <TouchableOpacity
           style={[
             styles.micButton,
-            (isListening || isSearching) && styles.micButtonActive
+            (isListening || isSearching) && styles.micButtonActive,
+            !ENABLE_VOICE && styles.micButtonDisabled
           ]}
           onPress={isListening ? stopRecognizing : startRecognizing}
           disabled={isSearching}
@@ -247,21 +263,31 @@ export default function Home() {
           {isSearching ? (
             <Ionicons name="hourglass-outline" size={100} color="white" />
           ) : (
-            <Ionicons name="mic-outline" size={100} color="white" />
+            <Ionicons name={ENABLE_VOICE ? "mic-outline" : "search-outline"} size={100} color="white" />
           )}
         </TouchableOpacity>
       </View>
 
       {/* 인식된 텍스트 실시간 출력 */}
       <View style={styles.resultContainer}>
-        <Text style={styles.resultTitle}>📝 인식된 텍스트</Text>
+        <Text style={styles.resultTitle}>📝 입력된 텍스트</Text>
         <Text style={styles.resultText}>
           {isSearching
             ? '검색 중...'
-            : recognizedText || '마이크를 눌러 말해보세요.'
+            : recognizedText || (ENABLE_VOICE ? '마이크를 눌러 말해보세요.' : '위 검색창에 목적지를 입력하세요.')
           }
         </Text>
       </View>
+
+      {/* 상태 메시지 */}
+      {!ENABLE_VOICE && (
+        <View style={styles.warningContainer}>
+          <Text style={styles.warningText}>
+            ⚠️ 음성 인식이 비활성화되어 있습니다.{'\n'}
+            개발 빌드에서 음성 기능을 사용할 수 있습니다.
+          </Text>
+        </View>
+      )}
 
       {/* 로그 출력 */}
       <ScrollView style={styles.logContainer}>
@@ -335,6 +361,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 20,
   },
+  micButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
   resultContainer: {
     paddingHorizontal: 30,
     paddingTop: 40,
@@ -347,6 +376,20 @@ const styles = StyleSheet.create({
   resultText: {
     fontSize: 20,
     color: '#000',
+    textAlign: 'center',
+  },
+  warningContainer: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#FFF3CD',
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFC107',
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#856404',
     textAlign: 'center',
   },
   logContainer: {
