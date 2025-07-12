@@ -1,11 +1,10 @@
-// screens/MapScreen/StepCard.tsx
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface StepCardProps {
   type: 'walk' | 'bus' | 'subway';
   instruction: string;
-  route?: string;
+  route?: string; // 예: "지선:3426" 또는 "3호선:경복궁"
   highlighted?: boolean;
   emoji?: string;
   fullGuidance?: string;
@@ -17,9 +16,8 @@ export default function StepCard({
   route,
   highlighted,
   emoji = '🚶',
-  fullGuidance
+  fullGuidance,
 }: StepCardProps) {
-
   const getTypeText = () => {
     switch (type) {
       case 'walk': return '도보';
@@ -31,7 +29,6 @@ export default function StepCard({
 
   const getBusNumber = () => {
     if (!route) return null;
-    // "노선:13-4" → "13-4"
     if (route.includes(':')) {
       return route.split(':')[1];
     }
@@ -45,33 +42,33 @@ export default function StepCard({
       style={[styles.card, highlighted && styles.highlightedCard]}
       activeOpacity={0.8}
     >
-      {/* 다음 이동수단 라벨 */}
       <Text style={[styles.label, highlighted && styles.highlightedText]}>
         {highlighted ? '현재 이동수단' : '다음 이동수단'}
       </Text>
 
-      {/* 큰 이모티콘 */}
       <View style={[styles.emojiCircle, highlighted && styles.highlightedCircle]}>
         <Text style={styles.emojiText}>{emoji}</Text>
       </View>
 
-      {/* 이동수단 타입 */}
       <Text style={[styles.typeText, highlighted && styles.highlightedText]}>
         {getTypeText()}
       </Text>
 
-      {/* 버스 번호 정보 */}
       {type === 'bus' && busNumber && (
         <Text style={[styles.busInfoText, highlighted && styles.highlightedText]}>
           {`${busNumber}번`}
         </Text>
       )}
 
-      {/* 소요 시간 */}
       <Text style={[styles.instructionText, highlighted && styles.highlightedText]}>
         {instruction}
       </Text>
 
+      {fullGuidance && (
+        <Text style={[styles.fullGuidanceText, highlighted && styles.highlightedText]}>
+          {fullGuidance}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 }
@@ -80,7 +77,7 @@ const styles = StyleSheet.create({
   card: {
     width: 140,
     height: 170,
-    marginBottom:13,
+    marginBottom: 13,
     borderWidth: 2,
     borderColor: '#FF6A00',
     borderRadius: 16,
@@ -94,13 +91,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    justifyContent: 'space-between', // 공간 균등 분배
+    justifyContent: 'space-between',
     transform: [{ scale: 0.9 }],
   },
   label: {
     fontSize: 15,
     fontWeight: '500',
-    marginBottom: 6, // 여백 줄임
+    marginBottom: 6,
     color: '#111',
     textAlign: 'center',
   },
@@ -112,7 +109,7 @@ const styles = StyleSheet.create({
     borderColor: '#FF6A00',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6, // 여백 줄임
+    marginBottom: 6,
     backgroundColor: '#fff',
   },
   emojiText: {
@@ -122,31 +119,30 @@ const styles = StyleSheet.create({
     fontSize: 23,
     fontWeight: '600',
     color: '#111',
-    marginBottom: 2, // 여백 줄임
+    marginBottom: 2,
   },
   instructionText: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#FF6A00',
-    marginTop: 2, // 여백 줄임
-    marginBottom: 2, // 아래 여백 추가해서 조절
+    marginTop: 2,
+    marginBottom: 2,
   },
   busInfoText: {
     fontSize: 17,
     fontWeight: '500',
     color: '#FF6A00',
-    marginBottom: 1, // 여백 줄임
+    marginBottom: 2,
+    textAlign: 'center',
   },
   fullGuidanceText: {
     fontSize: 10,
     color: '#666',
     textAlign: 'center',
-    marginTop: 2, // 여백 줄임
+    marginTop: 2,
     lineHeight: 12,
-    flex: 1, // 남은 공간 사용
+    flex: 1,
   },
-
-  // 강조 스타일 - 현재 이동수단 (배경색 반전)
   highlightedCard: {
     backgroundColor: '#FF6A00',
     borderColor: '#FF6A00',

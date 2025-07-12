@@ -1,4 +1,3 @@
-// screens/MapScreen/TransportSteps.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -9,10 +8,10 @@ import styles from './styles';
 export default function TransportSteps() {
   const { currentLegIndex } = useLocation();
   const params = useLocalSearchParams();
-  const [stableSteps, setStableSteps] = useState([]); // 안정화된 스텝 데이터
+  const [stableSteps, setStableSteps] = useState([]);
   const lastLegIndex = useRef(-1);
 
-  // 주요 이동수단만 추출 (이모티콘 기준)
+  // 주요 이동수단만 추출
   const getMainTransportSteps = () => {
     if (params.routeData) {
       try {
@@ -32,7 +31,7 @@ export default function TransportSteps() {
     setStableSteps(initialSteps);
   }, [params.routeData]);
 
-  // currentLegIndex 변경 시에만 highlighted 상태 업데이트
+  // currentLegIndex 변경 시 하이라이트 업데이트
   useEffect(() => {
     if (currentLegIndex === lastLegIndex.current) return;
 
@@ -41,12 +40,12 @@ export default function TransportSteps() {
     setStableSteps(prevSteps =>
       prevSteps.map((step, index) => ({
         ...step,
-        highlighted: step.originalIndex === currentLegIndex || index === currentLegIndex
+        highlighted: step.originalIndex === currentLegIndex || index === currentLegIndex,
       }))
     );
   }, [currentLegIndex]);
 
-  // API 데이터에서 이모티콘 기준으로 주요 이동수단 추출
+  // API 데이터 파싱
   const parseApiMainSteps = (routeData) => {
     if (!routeData.guides || routeData.guides.length === 0) {
       return getSampleMainSteps();
@@ -55,16 +54,16 @@ export default function TransportSteps() {
     const mainSteps = [];
 
     routeData.guides.forEach((guide, index) => {
-      // 🎯 이모티콘이 있는 주요 안내만 추출
-      if (guide.guidance && (
-        guide.guidance.includes('🚶') ||
-        guide.guidance.includes('🚌') ||
-        guide.guidance.includes('🚇') ||
-        guide.guidance.includes('🚄') ||
-        guide.guidance.includes('🚐')
-      )) {
-        const { transportType, time, routeName, busNumber, guidance } = guide;
+      const { transportType, time, routeName, busNumber, guidance } = guide;
 
+      if (
+        guidance &&
+        (guidance.includes('🚶') ||
+          guidance.includes('🚌') ||
+          guidance.includes('🚇') ||
+          guidance.includes('🚄') ||
+          guidance.includes('🚐'))
+      ) {
         let type: 'walk' | 'bus' | 'subway' = 'walk';
         if (transportType === 'BUS' || guidance.includes('🚌') || guidance.includes('🚐')) {
           type = 'bus';
@@ -72,10 +71,7 @@ export default function TransportSteps() {
           type = 'subway';
         }
 
-        // 시간 표시 (분 단위)
         const timeText = time ? `${Math.ceil(time / 60)}분` : '';
-
-        // 노선 정보
         const route = busNumber || routeName || '';
 
         mainSteps.push({
@@ -85,7 +81,7 @@ export default function TransportSteps() {
           route: route ? `노선:${route}` : undefined,
           emoji: getEmojiFromGuidance(guidance),
           fullGuidance: guidance,
-          originalIndex: index // 원본 인덱스 저장
+          originalIndex: index,
         });
       }
     });
@@ -94,17 +90,15 @@ export default function TransportSteps() {
     return mainSteps;
   };
 
-  // 안내 문구에서 이모티콘 추출
-  const getEmojiFromGuidance = (guidance) => {
+  const getEmojiFromGuidance = (guidance: string) => {
     if (guidance.includes('🚶')) return '🚶';
     if (guidance.includes('🚌')) return '🚌';
     if (guidance.includes('🚇')) return '🚇';
     if (guidance.includes('🚄')) return '🚄';
     if (guidance.includes('🚐')) return '🚐';
-    return '🚶'; // 기본값
+    return '🚶';
   };
 
-  // 샘플 데이터의 주요 이동수단
   const getSampleMainSteps = () => {
     return [
       {
@@ -113,7 +107,7 @@ export default function TransportSteps() {
         highlighted: currentLegIndex === 0,
         emoji: '🚶',
         fullGuidance: '🚶 시흥초등학교까지 도보',
-        originalIndex: 0
+        originalIndex: 0,
       },
       {
         type: 'bus',
@@ -122,7 +116,7 @@ export default function TransportSteps() {
         route: '노선:707-1',
         emoji: '🚌',
         fullGuidance: '🚌 707-1번 버스 탑승',
-        originalIndex: 1
+        originalIndex: 1,
       },
       {
         type: 'walk',
@@ -130,7 +124,7 @@ export default function TransportSteps() {
         highlighted: currentLegIndex === 2,
         emoji: '🚶',
         fullGuidance: '🚶 중앙시장까지 도보',
-        originalIndex: 2
+        originalIndex: 2,
       },
       {
         type: 'bus',
@@ -139,7 +133,7 @@ export default function TransportSteps() {
         route: '노선:13-4',
         emoji: '🚌',
         fullGuidance: '🚌 13-4번 버스 탑승',
-        originalIndex: 3
+        originalIndex: 3,
       },
       {
         type: 'walk',
@@ -147,8 +141,8 @@ export default function TransportSteps() {
         highlighted: currentLegIndex === 4,
         emoji: '🚶',
         fullGuidance: '🚶 목적지까지 도보',
-        originalIndex: 4
-      }
+        originalIndex: 4,
+      },
     ];
   };
 
