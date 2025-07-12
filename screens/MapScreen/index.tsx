@@ -1,40 +1,44 @@
-// screens/MapScreen/index.tsx
+// screens/MapScreen/MapScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { View, StyleSheet, Text, ScrollView } from 'react-native';
 import Header from './Header';
 import MapDisplay from './MapDisplay';
-import InstructionBox from './InstructionBox';
-import DetailedDirections from './DetailedDirections';
+import DetailedDirection from './DetailedDirections';
 import TransportSteps from './TransportSteps';
-import MicButton from './MicButton';
-import styles from './styles';
-
-import { useBusArrival } from '../../hooks/useBusArrival';
-import { useSubwayArrival } from '../../hooks/useSubwayArrival';
+import MicButton from './FloatingMicButton';
 import tmapData from '../../constants/routeData';
+import { fetchBusArrivalTime } from './fetchBusArrivalTime';
+import { fetchSubwayArrivalTime } from './fetchSubwayArrivalTime';
 
 export default function MapScreen() {
   const [eta, setEta] = useState('');
-  const legs = tmapData?.metaData?.plan?.itineraries?.[0]?.legs ?? [];
+  const [busMin, setBusMin] = useState<number | null>(null);
+  const [subwayMin, setSubwayMin] = useState<number | null>(null);
 
-  const firstBusLeg = legs.find((leg) => leg.mode === 'BUS');
-  const firstSubwayLeg = legs.find((leg) => leg.mode === 'SUBWAY');
+  const guides = tmapData?.guides ?? [];
 
-  const { soonestMinutes: busMin } = useBusArrival(
-    firstBusLeg?.stId,
-    firstBusLeg?.busRouteId,
-    firstBusLeg?.ord
-  );
+  const firstBusGuide = guides.find((guide) => guide.transportType === 'BUS');
+  const firstSubwayGuide = guides.find((guide) => guide.transportType === 'SUBWAY');
 
-  const { soonestMinutes: subwayMin } = useSubwayArrival(
-    firstSubwayLeg?.start?.name
-  );
+  useEffect(() => {
+    const fetchArrivalTimes = async () => {
+      if (firstBusGuide?.startLocation?.name && firstBusGuide?.busNumber) {
+        const min = await fetchBusArrivalTime(firstBusGuide.startLocation.name, firstBusGuide.busNumber);
+        setBusMin(min);
+      }
+      if (firstSubwayGuide?.startLocation?.name) {
+        const min = await fetchSubwayArrivalTime(firstSubwayGuide.startLocation.name);
+        setSubwayMin(min);
+      }
+    };
+    fetchArrivalTimes();
+  }, [firstBusGuide, firstSubwayGuide]);
 
   useEffect(() => {
     const now = new Date();
-    const totalDuration = legs.reduce((sum, leg) => sum + (leg.sectionTime ?? 0), 0);
+    const totalDuration = guides.reduce((sum, guide) => sum + (guide.time ?? 0), 0);
     const extraMin = (busMin ?? 0) + (subwayMin ?? 0);
-    const etaDate = new Date(now.getTime() + (totalDuration / 60 + extraMin) * 60 * 1000);
+    const etaDate = new Date(now.getTime() + (totalDuration + extraMin * 60) * 1000);
 
     const hours = etaDate.getHours().toString().padStart(2, '0');
     const minutes = etaDate.getMinutes().toString().padStart(2, '0');
@@ -43,23 +47,29 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 상단 헤더 - 목적지 및 도착 시간 */}
-      <Header destination="경복궁" eta={eta} />
-
-      {/* 지도 + 현재 위치 마커 */}
-      <MapDisplay />
-
-      {/* 실시간 길안내 텍스트 */}
-      <InstructionBox />
-
-      {/* 세부 경로 안내 - 지도와 카드 사이에 추가 */}
-      <DetailedDirections />
-
-      {/* 도보/버스/지하철 단계별 카드 */}
-      <TransportSteps />
-
-      {/* 하단 마이크 버튼 */}
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Header destination="광화문역" eta={eta} />
+        <MapDisplay />
+        <DetailedDirection routeData={tmapData} />
+        <TransportSteps routeData={tmapData} />
+        <Text style={styles.debugText}>📍 DEBUG: MapScreen End</Text>
+      </ScrollView>
       <MicButton />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContainer: {
+    paddingBottom: 80,
+  },
+  debugText: {
+    marginVertical: 40,
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#555',
+  },
+});

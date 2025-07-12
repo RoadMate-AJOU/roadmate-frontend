@@ -125,6 +125,7 @@ export const routeService = {
       debugLog('ROUTE_REQUEST', 'Request URL', { url });
 
       const requestBody = {
+        sessionId: "session-001",
         startLat: parseFloat(startLat),
         startLon: parseFloat(startLon),
         endLat: parseFloat(endLat),
