@@ -1,4 +1,3 @@
-// screens/MapScreen/InstructionBox.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -12,52 +11,54 @@ export default function InstructionBox() {
   const hasApiData = useRef(false);
   const emojiGuides = useRef([]);
 
-  // API 데이터가 있으면 사용, 없으면 기본 메시지
+  // ✅ routeData가 유효하지 않으면 샘플 fallback
   useEffect(() => {
     if (params.routeData && !hasApiData.current) {
       try {
         const routeData = JSON.parse(params.routeData);
+        if (!routeData?.guides || routeData.guides.length === 0) {
+          throw new Error('routeData.gudes가 비어 있음');
+        }
+
         parseEmojiGuides(routeData);
         hasApiData.current = true;
-        updateInstructionFromApi(0);
+        updateInstruction(0);
         console.log('📝 InstructionBox: API 데이터로 초기화 완료');
       } catch (error) {
-        console.warn('InstructionBox: API 데이터 파싱 실패', error);
-        setCurrentInstruction('🚶‍♂️ 목적지까지 안내 중입니다');
-        hasApiData.current = false;
+        console.warn('InstructionBox: API 데이터 파싱 실패 또는 guides 없음 → 샘플로 fallback', error);
+        useSampleGuides();
       }
     } else if (!params.routeData && !hasApiData.current) {
-      hasApiData.current = false;
-      updateInstructionFromSample(0);
-      console.log('📝 InstructionBox: 샘플 데이터로 초기화 완료');
+      useSampleGuides();
     }
   }, [params.routeData]);
 
-  // currentLegIndex가 변경될 때만 업데이트
   useEffect(() => {
     if (currentLegIndex === lastLegIndex.current) return;
 
     lastLegIndex.current = currentLegIndex;
-
-    if (hasApiData.current) {
-      updateInstructionFromApi(currentLegIndex);
-    } else {
-      updateInstructionFromSample(currentLegIndex);
-    }
+    updateInstruction(currentLegIndex);
   }, [currentLegIndex]);
 
-  // 이모티콘 가이드들만 추출해서 저장
+  // ✅ 서울 기반 샘플 가이드
+  const useSampleGuides = () => {
+    emojiGuides.current = [
+      { guidance: '🚶 광화문역까지 이동', transportType: 'WALK' },
+      { guidance: '🚇 5호선 지하철 탑승', transportType: 'SUBWAY', routeName: '5호선' },
+      { guidance: '🚶 경복궁역까지 도보 이동', transportType: 'WALK' },
+      { guidance: '🚌 종로02번 버스 승차', transportType: 'BUS', busNumber: '종로02' },
+      { guidance: '🚶 세종대로까지 도보 이동', transportType: 'WALK' },
+    ];
+    hasApiData.current = false;
+    updateInstruction(0);
+    console.log('📝 InstructionBox: 샘플 가이드 (서울 경로) 로딩 완료');
+  };
+
   const parseEmojiGuides = (routeData) => {
     const guides = [];
 
     routeData.guides?.forEach((guide, index) => {
-      if (guide.guidance && (
-        guide.guidance.includes('🚶') ||
-        guide.guidance.includes('🚌') ||
-        guide.guidance.includes('🚇') ||
-        guide.guidance.includes('🚄') ||
-        guide.guidance.includes('🚐')
-      )) {
+      if (guide.guidance && /🚶|🚌|🚇|🚄|🚐/.test(guide.guidance)) {
         guides.push({
           index: guides.length,
           originalIndex: index,
@@ -73,26 +74,9 @@ export default function InstructionBox() {
     console.log(`📝 이모티콘 가이드 ${guides.length}개 파싱 완료`);
   };
 
-  const updateInstructionFromApi = (legIndex) => {
-    if (emojiGuides.current.length > 0) {
-      const currentGuide = emojiGuides.current[legIndex] || emojiGuides.current[0];
-      const instruction = formatSimpleInstruction(currentGuide);
-      setCurrentInstruction(instruction);
-    } else {
-      setCurrentInstruction('🚶‍♂️ 목적지로 이동 중');
-    }
-  };
-
-  const updateInstructionFromSample = (legIndex) => {
-    const sampleInstructions = [
-      '🚶‍♂️ 시흥초등학교로 이동',
-      '🚌 707-1번 버스 승차',
-      '🚶‍♂️ 중앙시장으로 이동',
-      '🚌 13-4번 버스 승차',
-      '🚶‍♂️ 목적지로 이동'
-    ];
-
-    const instruction = sampleInstructions[legIndex] || sampleInstructions[0];
+  const updateInstruction = (legIndex) => {
+    const guide = emojiGuides.current[legIndex] || emojiGuides.current[0];
+    const instruction = formatSimpleInstruction(guide);
     setCurrentInstruction(instruction);
   };
 
@@ -101,9 +85,7 @@ export default function InstructionBox() {
 
     const { transportType, busNumber, routeName, guidance } = guide;
 
-    // 이모티콘이 포함된 간단한 안내만 추출
     if (guidance.includes('🚶')) {
-      // 도보 안내에서 목적지만 추출
       if (guidance.includes('까지')) {
         const destination = guidance.split('까지')[0].replace('🚶', '').trim();
         return `🚶‍♂️ ${destination}으로 이동`;
@@ -124,7 +106,11 @@ export default function InstructionBox() {
     return '🚶‍♂️ 이동 중';
   };
 
-  return;
+  return (
+    <View style={styles.instructionBox}>
+      <Text style={styles.instructionText}>{currentInstruction}</Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

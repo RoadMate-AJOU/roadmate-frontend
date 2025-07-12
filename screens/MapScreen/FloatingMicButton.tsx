@@ -46,6 +46,7 @@ export default function FloatingMicButton() {
     }
   }, [isSpeaking]);
 
+  /*
   const sendToBackend = async (text: string) => {
     try {
       const res = await fetch('http://223.130.135.190:8080/api/poi/search', {
@@ -93,22 +94,11 @@ export default function FloatingMicButton() {
       setIsSpeaking(false);
     }
   };
+  */
 
   const handleMicPress = () => {
-    const dummyText = '고마워'; // 🔁 실제 음성 인식 결과로 대체 예정
-    setIsSpeaking(true);
-
-    Speech.speak(dummyText, {
-      language: 'ko-KR',
-      onDone: () => {
-        console.log('✅ TTS 완료, 백엔드 전송 시작');
-        sendToBackend(dummyText);
-      },
-      onError: (err) => {
-        console.error('❌ TTS 오류:', err);
-        setIsSpeaking(false);
-      },
-    });
+    // 마이크 기능 일시 비활성화
+    setIsSpeaking((prev) => !prev);
   };
 
   const glowOpacity = glowAnim.interpolate({
