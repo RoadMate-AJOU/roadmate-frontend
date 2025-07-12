@@ -86,13 +86,13 @@ export const poiService = {
       return {
         places: [
           {
-            name: '서울역',
+            name: '서울역(세종대로)',
             lat: 37.5665,
             lon: 126.9780,
             address: '서울특별시 종로구 세종대로',
           },
           {
-            name: '서울역',
+            name: '서울역(자하문로)',
             lat: 37.5700,
             lon: 126.982,
             address: '서울특별시 종로구 자하문로',

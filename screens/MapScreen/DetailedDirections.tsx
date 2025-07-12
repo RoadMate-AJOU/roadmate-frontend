@@ -1,5 +1,7 @@
+// ✅ DetailedDirections.tsx (스크롤 제거 및 maxHeight 삭제 버전)
+
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useLocation } from '../../contexts/LocationContext';
 
 export default function DetailedDirections({ routeData }: { routeData?: any }) {
@@ -31,7 +33,20 @@ export default function DetailedDirections({ routeData }: { routeData?: any }) {
   const parseStepsFromGuides = (guides: any[]) => {
     try {
       const parsedSteps = guides.flatMap((guide, legIndex) => {
-        if (guide.transportType !== 'WALK' || !Array.isArray(guide.steps)) return [];
+        if (guide.transportType !== 'WALK') return [];
+
+        if (!Array.isArray(guide.steps)) {
+          return [
+            {
+              index: 0,
+              instruction: cleanInstruction(guide.guidance || '도보 안내'),
+              distance: formatDistance(guide.distance),
+              parentLegIndex: legIndex,
+              current: false,
+            },
+          ];
+        }
+
         return guide.steps.map((step: any, stepIndex: number) => ({
           index: stepIndex,
           instruction: cleanInstruction(step.description),
@@ -90,31 +105,26 @@ export default function DetailedDirections({ routeData }: { routeData?: any }) {
   return (
     <View style={styles.wrapper}>
       <Text style={styles.title}>지금 우리는</Text>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator
-      >
-        {currentStepDetails.map((step, index) => (
-          <View key={step.index} style={[styles.stepItem, step.current && styles.currentStepItem]}>
-            <View style={[styles.stepNumber, step.current && styles.currentStepNumber]}>
-              <Text style={[styles.stepNumberText, step.current && styles.currentStepNumberText]}>
-                {index + 1}
-              </Text>
-            </View>
-            <View style={styles.stepContent}>
-              <Text style={[styles.stepInstruction, step.current && styles.currentStepInstruction]}>
-                {step.instruction}
-              </Text>
-              {step.distance && (
-                <Text style={[styles.stepDistance, step.current && styles.currentStepDistance]}>
-                  {step.distance}
-                </Text>
-              )}
-            </View>
+
+      {currentStepDetails.map((step, index) => (
+        <View key={step.index} style={[styles.stepItem, step.current && styles.currentStepItem]}>
+          <View style={[styles.stepNumber, step.current && styles.currentStepNumber]}>
+            <Text style={[styles.stepNumberText, step.current && styles.currentStepNumberText]}>
+              {index + 1}
+            </Text>
           </View>
-        ))}
-      </ScrollView>
+          <View style={styles.stepContent}>
+            <Text style={[styles.stepInstruction, step.current && styles.currentStepInstruction]}>
+              {step.instruction}
+            </Text>
+            {step.distance && (
+              <Text style={[styles.stepDistance, step.current && styles.currentStepDistance]}>
+                {step.distance}
+              </Text>
+            )}
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -126,7 +136,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
     padding: 12,
-    maxHeight: 320,
   },
   title: {
     fontSize: 18,
@@ -134,12 +143,6 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
     textAlign: 'center',
-  },
-  scroll: {
-    maxHeight: 260,
-  },
-  scrollContent: {
-    paddingBottom: 6,
   },
   stepItem: {
     flexDirection: 'row',
