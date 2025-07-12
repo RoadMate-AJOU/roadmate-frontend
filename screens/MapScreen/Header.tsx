@@ -14,21 +14,21 @@ export default function Header() {
     let eta = '10:26'; // 기본값
 
     if (params.destinationName) {
-      destination = params.destinationName;
+      destination = params.destinationName as string;
     }
 
     if (params.routeData) {
       try {
-        const routeData = JSON.parse(params.routeData);
+        const routeData = JSON.parse(params.routeData as string);
         const totalTimeSeconds = routeData.totalTime || 0;
 
         if (totalTimeSeconds > 0) {
           const now = new Date();
-          const arrivalTime = new Date(now.getTime() + (totalTimeSeconds * 1000));
+          const arrivalTime = new Date(now.getTime() + totalTimeSeconds * 1000);
           eta = arrivalTime.toLocaleTimeString('ko-KR', {
             hour: '2-digit',
             minute: '2-digit',
-            hour12: false
+            hour12: false,
           });
         }
       } catch (error) {
@@ -50,7 +50,7 @@ export default function Header() {
       <View style={{ flex: 1 }} />
       <View style={{ alignItems: 'flex-end' }}>
         <Text style={styles.etaLabel}>도착 예정</Text>
-        <Text style={styles.etaTime}>{eta}</Text>
+        <Text style={styles.etaTime}>{eta || '계산 중...'}</Text>
       </View>
     </View>
   );

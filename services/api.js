@@ -1,5 +1,4 @@
-// services/api.js
-const BASE_URL = 'http://223.130.135.190:8080/api'; // 실제 백엔드 IP로 변경하세요
+const BASE_URL = 'http://127.20.10.9:4000/api'; // 실제 백엔드 IP로 변경하세요
 
 // 디버깅을 위한 로그 함수
 const debugLog = (tag, message, data = null) => {
@@ -31,7 +30,6 @@ export const gptService = {
     try {
       debugLog('GPT_PARSE', 'Input received', { text });
 
-      // 간단한 키워드 추출 로직 (실제 GPT API 대신)
       const destination = text
         .replace(/가고\s*싶어요?|갈래요?|가자|가줘|까지|으로|에|로/g, '')
         .trim();
@@ -81,7 +79,26 @@ export const poiService = {
       return data;
     } catch (error) {
       debugLog('POI_ERROR', '❌ POI search failed', { error: error.message });
-      throw error;
+
+      // 🔁 샘플 데이터 fallback
+      debugLog('POI_FALLBACK', '📦 샘플 데이터로 대체합니다');
+
+      return {
+        places: [
+          {
+            name: '서울역(세종대로)',
+            lat: 37.5665,
+            lon: 126.9780,
+            address: '서울특별시 종로구 세종대로',
+          },
+          {
+            name: '서울역(자하문로)',
+            lat: 37.5700,
+            lon: 126.982,
+            address: '서울특별시 종로구 자하문로',
+          },
+        ],
+      };
     }
   }
 };
@@ -100,7 +117,6 @@ export const routeService = {
     });
 
     try {
-      // 파라미터 검증
       if (!startLat || !startLon || !endLat || !endLon) {
         throw new Error('출발지 또는 목적지 좌표가 없습니다');
       }
@@ -109,6 +125,7 @@ export const routeService = {
       debugLog('ROUTE_REQUEST', 'Request URL', { url });
 
       const requestBody = {
+        sessionId: "session-001",
         startLat: parseFloat(startLat),
         startLon: parseFloat(startLon),
         endLat: parseFloat(endLat),
@@ -120,7 +137,6 @@ export const routeService = {
 
       debugLog('ROUTE_REQUEST_BODY', 'Request body', requestBody);
 
-      // 실제 fetch 호출
       debugLog('ROUTE_FETCH', '🚀 실제 fetch 호출 시작!', {
         url,
         method: 'POST',
@@ -156,7 +172,6 @@ export const routeService = {
         stack: error.stack
       });
 
-      // 네트워크 연결 문제인지 확인
       if (error.message.includes('Network request failed') ||
           error.message.includes('fetch')) {
         debugLog('NETWORK_ERROR', '네트워크 연결 문제 감지');
@@ -167,7 +182,7 @@ export const routeService = {
     }
   },
 
-  // 헬스 체크 함수 추가
+  // 헬스 체크 함수
   healthCheck: async () => {
     try {
       debugLog('HEALTH_CHECK', '서버 상태 확인 시작');
