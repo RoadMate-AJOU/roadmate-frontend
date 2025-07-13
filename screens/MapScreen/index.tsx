@@ -1,29 +1,156 @@
-import React from 'react';
-import { View } from 'react-native';
+// MapScreen.tsx
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Text, ScrollView, Modal, TouchableOpacity } from 'react-native';
 import Header from './Header';
 import MapDisplay from './MapDisplay';
-import InstructionBox from './InstructionBox';
-import DetailedDirections from './DetailedDirections';
+import DetailedDirection from './DetailedDirections';
 import TransportSteps from './TransportSteps';
-import styles from './styles';
+import MicButton from './FloatingMicButton';
+import { fetchBusArrivalTime } from './fetchBusArrivalTime';
+import { fetchSubwayArrivalTime } from './fetchSubwayArrivalTime';
+import tmap_sample4 from '../../data/tmap_sample4.json';
+import tmap_sample5 from '../../data/tmap_sample5.json'; // ✅ 새 데이터
 
 export default function MapScreen() {
+  const [eta, setEta] = useState('');
+  const [busMin, setBusMin] = useState<number | null>(null);
+  const [subwayMin, setSubwayMin] = useState<number | null>(null);
+  const [routeData, setRouteData] = useState<any>(tmap_sample4); // ✅ 동적 데이터 상태로 관리
+  const [showAlert, setShowAlert] = useState(false);             // ✅ 경로 이탈 알림
+  const [answered, setAnswered] = useState(false);               // ✅ 버튼 클릭 여부
+
+  const guides = routeData?.guides ?? [];
+
+  const firstBusGuide = guides.find((guide) => guide.transportType === 'BUS');
+  const firstSubwayGuide = guides.find((guide) => guide.transportType === 'SUBWAY');
+
+  useEffect(() => {
+    const fetchArrivalTimes = async () => {
+      if (firstBusGuide?.startLocation?.name && firstBusGuide?.busNumber) {
+        const min = await fetchBusArrivalTime(firstBusGuide.startLocation.name, firstBusGuide.busNumber);
+        setBusMin(min);
+      }
+      if (firstSubwayGuide?.startLocation?.name) {
+        const min = await fetchSubwayArrivalTime(firstSubwayGuide.startLocation.name);
+        setSubwayMin(min);
+      }
+    };
+    fetchArrivalTimes();
+  }, [firstBusGuide, firstSubwayGuide]);
+
+  useEffect(() => {
+    const now = new Date();
+    const totalDuration = guides.reduce((sum, guide) => sum + (guide.time ?? 0), 0);
+    const extraMin = (busMin ?? 0) + (subwayMin ?? 0);
+    const etaDate = new Date(now.getTime() + (totalDuration + extraMin * 60) * 1000);
+
+    const hours = etaDate.getHours().toString().padStart(2, '0');
+    const minutes = etaDate.getMinutes().toString().padStart(2, '0');
+    setEta(`${hours}:${minutes}`);
+  }, [busMin, subwayMin, routeData]);
+
+  useEffect(() => {
+    // ✅ 10초 후 경로 이탈 알림 표시
+    const timer = setTimeout(() => {
+      if (!answered) {
+        console.log('🚨 경로 이탈 감지됨 (하드코딩)');
+        setShowAlert(true);
+      }
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, [answered]);
+
+  const handleYes = () => {
+    console.log('✅ 예 클릭 → 새 경로로 갱신');
+    setRouteData(tmap_sample5);  // ✅ tmap_sample5로 데이터 변경
+    setShowAlert(false);
+    setAnswered(true);
+  };
+
+  const handleNo = () => {
+    console.log('❌ 아니요 클릭 → 기존 경로 유지');
+    setShowAlert(false);
+    setAnswered(true);
+  };
+
   return (
     <View style={styles.container}>
-      {/* 상단 헤더 - 목적지 및 도착 시간 */}
-      <Header />
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Header destination="광화문역" eta={eta} />
+        <MapDisplay />
+        <DetailedDirection routeData={routeData} />
+        <TransportSteps routeData={routeData} />
+        <Text style={styles.debugText}>📍 DEBUG: MapScreen End</Text>
+      </ScrollView>
 
-      {/* 지도 + 현재 위치 마커 */}
-      <MapDisplay />
+      <MicButton />
 
-      {/* 실시간 길안내 텍스트 */}
-      <InstructionBox />
-
-      {/* 세부 경로 안내 - 지도와 카드 사이에 추가 */}
-      <DetailedDirections />
-
-      {/* 도보/버스/지하철 단계별 카드 */}
-      <TransportSteps />
+      {/* ✅ 경로 이탈 알림 모달 */}
+      <Modal visible={showAlert} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalText}>경로에서 이탈한 것 같아요. 새로운 경로를 탐색할까요?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.buttonYes} onPress={handleYes}>
+                <Text style={styles.buttonText}>예</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.buttonNo} onPress={handleNo}>
+                <Text style={styles.buttonText}>아니요</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  scrollContainer: { paddingBottom: 80 },
+  debugText: {
+    marginVertical: 40,
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#555',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: '#00000088',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBox: {
+    width: '85%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  buttonYes: {
+    backgroundColor: '#FF6A00',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  buttonNo: {
+    backgroundColor: '#ccc',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+});
