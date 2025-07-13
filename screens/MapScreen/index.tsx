@@ -1,4 +1,3 @@
-// MapScreen.tsx
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Text, ScrollView, Modal, TouchableOpacity } from 'react-native';
 import Header from './Header';
@@ -9,15 +8,15 @@ import MicButton from './FloatingMicButton';
 import { fetchBusArrivalTime } from './fetchBusArrivalTime';
 import { fetchSubwayArrivalTime } from './fetchSubwayArrivalTime';
 import tmap_sample4 from '../../data/tmap_sample4.json';
-import tmap_sample5 from '../../data/tmap_sample5.json'; // ✅ 새 데이터
+import tmap_sample5 from '../../data/tmap_sample5.json';
 
 export default function MapScreen() {
   const [eta, setEta] = useState('');
   const [busMin, setBusMin] = useState<number | null>(null);
   const [subwayMin, setSubwayMin] = useState<number | null>(null);
-  const [routeData, setRouteData] = useState<any>(tmap_sample4); // ✅ 동적 데이터 상태로 관리
-  const [showAlert, setShowAlert] = useState(false);             // ✅ 경로 이탈 알림
-  const [answered, setAnswered] = useState(false);               // ✅ 버튼 클릭 여부
+  const [routeData, setRouteData] = useState<any>(tmap_sample4);
+  const [showAlert, setShowAlert] = useState(false);
+  const [answered, setAnswered] = useState(false);
 
   const guides = routeData?.guides ?? [];
 
@@ -50,7 +49,6 @@ export default function MapScreen() {
   }, [busMin, subwayMin, routeData]);
 
   useEffect(() => {
-    // ✅ 10초 후 경로 이탈 알림 표시
     const timer = setTimeout(() => {
       if (!answered) {
         console.log('🚨 경로 이탈 감지됨 (하드코딩)');
@@ -63,7 +61,7 @@ export default function MapScreen() {
 
   const handleYes = () => {
     console.log('✅ 예 클릭 → 새 경로로 갱신');
-    setRouteData(tmap_sample5);  // ✅ tmap_sample5로 데이터 변경
+    setRouteData(tmap_sample5);
     setShowAlert(false);
     setAnswered(true);
   };
@@ -75,18 +73,13 @@ export default function MapScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Header destination="광화문역" eta={eta} />
-        <MapDisplay />
-        <DetailedDirection routeData={routeData} />
-        <TransportSteps routeData={routeData} />
-        <Text style={styles.debugText}>📍 DEBUG: MapScreen End</Text>
-      </ScrollView>
-
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContainer}>
+      <Header destination="광화문역" eta={eta} />
+      <MapDisplay />
+      <DetailedDirection routeData={routeData} />
+      <TransportSteps routeData={routeData} />
       <MicButton />
 
-      {/* ✅ 경로 이탈 알림 모달 */}
       <Modal visible={showAlert} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -102,19 +95,13 @@ export default function MapScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContainer: { paddingBottom: 80 },
-  debugText: {
-    marginVertical: 40,
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#555',
-  },
+  scrollContainer: { paddingBottom: 120 },
   modalOverlay: {
     flex: 1,
     backgroundColor: '#00000088',
