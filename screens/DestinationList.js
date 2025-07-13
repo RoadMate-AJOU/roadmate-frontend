@@ -17,6 +17,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLocation } from '../contexts/LocationContext';
 import { poiService, routeService } from '../services/api';
 
+
+// ✅ 여기에 추가!
+const appendLog = (title, payload) => {
+  console.log(`📝 [${title}]`, JSON.stringify(payload, null, 2));
+};
+
 export default function DestinationList() {
   const [poiList, setPoiList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -112,10 +118,23 @@ export default function DestinationList() {
   const handleSelectDestination = useCallback(async (item) => {
     const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
     setRouteSearching(item.id);
+
+    appendLog('📤 경로 요청 파라미터', {
+      startLat: currentLocation.latitude,
+      startLon: currentLocation.longitude,
+      endLat: item.lat,
+      endLon: item.lon,
+      startName: '현재 위치',
+      endName: item.name
+    });
+
     try {
       const routeResponse = await routeService.searchRoute(
         currentLocation.latitude, currentLocation.longitude, item.lat, item.lon, '현재 위치', item.name
       );
+
+      appendLog('✅ 경로 응답 결과', routeResponse);
+
       router.push({
         pathname: '/map',
         params: {
@@ -133,10 +152,11 @@ export default function DestinationList() {
         },
       });
     } catch (error) {
+      appendLog('❌ 경로 요청 실패', error);
       Alert.alert('경로 검색 실패', '경로를 찾을 수 없습니다. 기본 지도로 이동합니다.', [{
         text: '확인',
         onPress: () => {
-          router.push({
+          router.replace({
             pathname: '/map',
             params: {
               destinationName: item.name,
@@ -155,6 +175,7 @@ export default function DestinationList() {
       setRouteSearching(null);
     }
   }, [router, location]);
+
 
   const renderItem = useCallback(({ item }) => (
     <TouchableOpacity
@@ -273,28 +294,28 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(250, 129, 47, 0.1)',
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(250,129,47,0.15)',
     ...Platform.select({
       ios: {
-        shadowColor: '#FA812F',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
       },
       android: {
-        elevation: 4,
-        borderWidth: 1,
-        borderColor: 'rgba(250,129,47,0.15)',
+        elevation: 1,
       },
     }),
     position: 'relative',
   },
   cardSearching: {
     opacity: 0.7,
-    backgroundColor: 'rgba(250, 129, 47, 0.2)',
+    backgroundColor: '#FFF8F2',
   },
   info: {
     flex: 1,
