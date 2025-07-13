@@ -79,11 +79,11 @@ export default function Home() {
       }
 
       // 2. 목적지 추출 후 POI 검색 실행
-      const destination = result.data?.destination;
-      if (!destination) {
-        Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 말씀해주세요.');
-        return;
-      }
+//      const destination = result.data?.destination;
+//      if (!destination) {
+//        Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 말씀해주세요.');
+//        return;
+//      }
 
       await searchPOI(destination);
 
