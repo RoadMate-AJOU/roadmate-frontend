@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 16.13.2",
+    "version": ">= 16.14.1",
     "appVersionSource": "remote"
   },
   "build": {
@@ -9,14 +9,7 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
-      "cache": {
-        "key" : "preview-cache-v1",
-        "cacheDefaultPaths" : true
-      }
+      "distribution": "internal"
     },
     "production": {
       "autoIncrement": true

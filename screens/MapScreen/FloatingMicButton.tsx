@@ -53,6 +53,7 @@ export default function FloatingMicButton() {
     }
   }, [isSpeaking]);
 
+  // sendToBackend 내에서만 intent, status 체크 + 라우팅
   const sendToBackend = async (text: string) => {
     try {
       const res = await fetch('http://223.130.135.190:8080/nlp/chat', {
@@ -67,33 +68,19 @@ export default function FloatingMicButton() {
       const json = await res.json();
       const { status, intent, responseMessage } = json;
 
-      if (status === 'COMPLETE') {
+      if (responseMessage) {
         Speech.speak(responseMessage, {
           language: 'ko-KR',
-          onDone: () => setIsSpeaking(false),
+          onDone: () => {
+            if (status === 'API_REQUIRED') {
+              if (intent === 'extract_route' || intent === 'research_route') {
+                router.replace('/(tabs)');
+              }
+            }
+            setIsSpeaking(false);
+          },
+          onError: () => setIsSpeaking(false),
         });
-      }
-      else if (status === 'API_REQUIRED') {
-        if (intent === 'extract_route' || intent === 'research_route') {
-          Speech.speak(responseMessage, {
-            language: 'ko-KR',
-            onDone: () => {
-              setIsSpeaking(false);
-              router.push('/home');
-            },
-          });
-        }
-        else if (
-          intent === 'real_time_bus_arrival' ||
-          intent === 'real_time_subway_arrival'
-        ) {
-          Speech.speak('500번 버스 도착 정보를 확인해볼게요.', {
-            language: 'ko-KR',
-            onDone: () => setIsSpeaking(false),
-          });
-        } else {
-          setIsSpeaking(false);
-        }
       } else {
         setIsSpeaking(false);
       }
@@ -102,6 +89,7 @@ export default function FloatingMicButton() {
       setIsSpeaking(false);
     }
   };
+
 
   const handleMicPress = async () => {
       if (isListening) {
@@ -135,27 +123,25 @@ export default function FloatingMicButton() {
         }
       });
 
-    // 음성 인식 종료 후 처리 (→ 백엔드 전송)
-      useSpeechRecognitionEvent('end', () => {
-        setIsListening(false);
-        const finalText = recognizedTextRef.current;
-        if (finalText) {
-          Speech.speak(finalText, {
-            language: 'ko-KR',
-            onDone: () => {
-              console.log('✅ TTS 완료, 백엔드 전송 시작');
-              sendToBackend(finalText);
-            },
-            onError: (err) => {
-              console.error('❌ TTS 오류:', err);
-              setIsSpeaking(false);
-            },
-          });
-        } else {
-          console.log('⚠️ 음성이 인식되지 않았습니다');
-          setIsSpeaking(false);
-        }
-      });
+    // 마이크 종료 후 처리
+    useSpeechRecognitionEvent('end', () => {
+      setIsListening(false);
+      const finalText = recognizedTextRef.current;
+
+      if (finalText) {
+        // 1단계: 사용자가 말한 걸 TTS로 읽고
+        Speech.speak(finalText, {
+          language: 'ko-KR',
+          onDone: () => {
+            // 2단계: TTS 끝나면 백엔드로 전송
+            sendToBackend(finalText);
+          },
+          onError: () => setIsSpeaking(false),
+        });
+      } else {
+        setIsSpeaking(false);
+      }
+    });
 
    useSpeechRecognitionEvent('error', (event) => {
        console.error('❌ 음성 인식 에러:', event.error);
@@ -217,8 +203,8 @@ export default function FloatingMicButton() {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 20,
-    left: 20,
+    bottom: 30,
+    right: 20,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,

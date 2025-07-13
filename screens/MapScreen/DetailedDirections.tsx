@@ -1,46 +1,36 @@
-// ✅ DetailedDirections.tsx (스크롤 제거 및 maxHeight 삭제 버전)
-
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useLocation } from '../../contexts/LocationContext';
 
 export default function DetailedDirections({ routeData }: { routeData?: any }) {
   const [allDetailedSteps, setAllDetailedSteps] = useState([]);
   const [currentStepDetails, setCurrentStepDetails] = useState([]);
   const { currentLegIndex } = useLocation();
-  const lastLegIndex = useRef(-2);
-
-  const validLegIndex = currentLegIndex < 0 ? 0 : currentLegIndex;
 
   useEffect(() => {
     if (routeData?.guides) {
-      console.log('📦 [DetailedDirections] routeData 전달됨');
       parseStepsFromGuides(routeData.guides);
     } else {
-      console.warn('⚠️ [DetailedDirections] routeData 없음. 샘플 데이터로 대체');
       const sampleSteps = getAllSampleDetailedSteps();
       setAllDetailedSteps(sampleSteps);
-      updateCurrentStepDetails(sampleSteps, validLegIndex);
+      updateCurrentStepDetails(sampleSteps);
     }
   }, [routeData]);
-
-  useEffect(() => {
-    if (validLegIndex === lastLegIndex.current) return;
-    lastLegIndex.current = validLegIndex;
-    updateCurrentStepDetails(allDetailedSteps, validLegIndex);
-  }, [validLegIndex, allDetailedSteps]);
 
   const parseStepsFromGuides = (guides: any[]) => {
     try {
       const parsedSteps = guides.flatMap((guide, legIndex) => {
         if (guide.transportType !== 'WALK') return [];
 
+        const instruction = cleanInstruction(guide.guidance || '도보로 이동');
+        const distance = formatDistance(guide.distance);
+
         if (!Array.isArray(guide.steps)) {
           return [
             {
               index: 0,
-              instruction: cleanInstruction(guide.guidance || '도보 안내'),
-              distance: formatDistance(guide.distance),
+              instruction,
+              distance,
               parentLegIndex: legIndex,
               current: false,
             },
@@ -56,26 +46,26 @@ export default function DetailedDirections({ routeData }: { routeData?: any }) {
         }));
       });
 
-      console.log('✅ [DetailedDirections] WALK 단계 추출 완료:', parsedSteps);
       setAllDetailedSteps(parsedSteps);
-      updateCurrentStepDetails(parsedSteps, validLegIndex);
+      updateCurrentStepDetails(parsedSteps);
     } catch (error) {
-      console.warn('❌ [DetailedDirections] WALK 단계 파싱 실패:', error);
+      console.warn('❌ WALK 단계 파싱 실패:', error);
     }
   };
 
-  const updateCurrentStepDetails = (allSteps, legIndex) => {
+  const updateCurrentStepDetails = (allSteps) => {
     if (allSteps.length === 0) return;
-    const currentDetails = allSteps.filter(step => step.parentLegIndex === legIndex);
-    const updatedDetails = currentDetails.map((step, index) => ({
+
+    const updatedDetails = allSteps.map((step, index) => ({
       ...step,
       current: index === 0,
     }));
+
     setCurrentStepDetails(updatedDetails);
   };
 
   const cleanInstruction = (instruction: string) => {
-    if (!instruction) return '';
+    if (!instruction || instruction.trim() === '') return '도보로 이동';
     return instruction.includes(':')
       ? instruction.split(':').slice(1).join(':').trim()
       : instruction.trim();
@@ -86,13 +76,14 @@ export default function DetailedDirections({ routeData }: { routeData?: any }) {
     return distance >= 1000 ? `${(distance / 1000).toFixed(1)}km` : `${distance}m`;
   };
 
-  const getAllSampleDetailedSteps = () => [
-    { index: 0, instruction: '남쪽으로 34m 직진', distance: '34m', parentLegIndex: 0, current: false },
-    { index: 1, instruction: '우회전 후 157m 직진', distance: '157m', parentLegIndex: 0, current: false },
-    { index: 2, instruction: '좌회전 후 월드컵로 102m', distance: '102m', parentLegIndex: 0, current: false },
-    { index: 3, instruction: '횡단보도 건넌 후 80m 직진', distance: '80m', parentLegIndex: 0, current: false },
-    { index: 4, instruction: '지하철역 진입', distance: '', parentLegIndex: 0, current: false },
-  ];
+  const getAllSampleDetailedSteps = () =>
+    Array.from({ length: 8 }).map((_, i) => ({
+      index: i,
+      instruction: `샘플 경로 안내 ${i + 1}`,
+      distance: `${30 + i * 20}m`,
+      parentLegIndex: 0,
+      current: false,
+    }));
 
   if (currentStepDetails.length === 0) {
     return (
@@ -106,25 +97,30 @@ export default function DetailedDirections({ routeData }: { routeData?: any }) {
     <View style={styles.wrapper}>
       <Text style={styles.title}>지금 우리는</Text>
 
-      {currentStepDetails.map((step, index) => (
-        <View key={step.index} style={[styles.stepItem, step.current && styles.currentStepItem]}>
-          <View style={[styles.stepNumber, step.current && styles.currentStepNumber]}>
-            <Text style={[styles.stepNumberText, step.current && styles.currentStepNumberText]}>
-              {index + 1}
-            </Text>
-          </View>
-          <View style={styles.stepContent}>
-            <Text style={[styles.stepInstruction, step.current && styles.currentStepInstruction]}>
-              {step.instruction}
-            </Text>
-            {step.distance && (
-              <Text style={[styles.stepDistance, step.current && styles.currentStepDistance]}>
-                {step.distance}
+      <ScrollView style={styles.scrollArea} nestedScrollEnabled={true}>
+        {currentStepDetails.map((step, index) => (
+          <View
+            key={`${step.parentLegIndex}-${step.index}`}
+            style={[styles.stepItem, step.current && styles.currentStepItem]}
+          >
+            <View style={[styles.stepNumber, step.current && styles.currentStepNumber]}>
+              <Text style={[styles.stepNumberText, step.current && styles.currentStepNumberText]}>
+                {index + 1}
               </Text>
-            )}
+            </View>
+            <View style={styles.stepContent}>
+              <Text style={[styles.stepInstruction, step.current && styles.currentStepInstruction]}>
+                {step.instruction}
+              </Text>
+              {step.distance && (
+                <Text style={[styles.stepDistance, step.current && styles.currentStepDistance]}>
+                  {step.distance}
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
-      ))}
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -143,6 +139,9 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
     textAlign: 'center',
+  },
+  scrollArea: {
+    maxHeight: 240, // ✅ 보이는 높이 제한 (2~3개만 보이도록)
   },
   stepItem: {
     flexDirection: 'row',

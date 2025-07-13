@@ -1,29 +1,47 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  ScrollView,
+  PermissionsAndroid,
+  Platform,
   Alert,
 } from 'react-native';
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from 'expo-speech-recognition';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useLocation } from '../contexts/LocationContext';
-<<<<<<< HEAD
-import { poiService } from '../services/api';
-=======
 import { poiService, gptService } from '../services/api';
 import * as Speech from 'expo-speech';
->>>>>>> dc9da24 (apk)
 
-const ENABLE_VOICE = false; // 음성 인식 비활성화
+const ENABLE_VOICE = true;
 
 export default function Home() {
   const [recognizedText, setRecognizedText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const { location } = useLocation();
+
+  const requestAudioPermission = async () => {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        {
+          title: '마이크 권한 요청',
+          message: '음성 인식을 위해 마이크 권한이 필요합니다.',
+          buttonPositive: '확인',
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return true;
+  };
 
   const handleTextSearch = async () => {
     if (!recognizedText.trim()) {
@@ -62,6 +80,7 @@ export default function Home() {
 
       if (!res.ok) {
             throw new Error(`HTTP ${res.status}`);
+
           }
 
       const result = await res.json();
@@ -79,7 +98,7 @@ export default function Home() {
       }
 
       // 2. 목적지 추출 후 POI 검색 실행
-//      const destination = result.data?.destination;
+      const destination = result.data?.destination;
 //      if (!destination) {
 //        Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 말씀해주세요.');
 //        return;
@@ -115,26 +134,65 @@ export default function Home() {
           }
         });
       } else {
-        Alert.alert('검색 결과 없음', `"${keyword}"에 대한 검색 결과가 없습니다.`);
+        Alert.alert('검색 결과 없음', `${keyword}에 대한 검색 결과가 없습니다.`);
       }
     } catch (error) {
       throw error;
     }
   };
 
-  const handleMicPress = () => {
-    if (ENABLE_VOICE) {
-      // 음성 인식 로직 주석 처리됨
+  const startRecognizing = async () => {
+    if (!ENABLE_VOICE) {
+      if (recognizedText.trim()) {
+        handleTextSearch();ㅛ
+      } else {
+        Alert.alert('알림', '음성 인식이 비활성화되어 있습니다. 텍스트로 검색해주세요.');
+      }
       return;
     }
 
-    // 음성 비활성화 상태에서는 텍스트 검색만 수행
-    if (recognizedText.trim()) {
-      handleTextSearch();
-    } else {
-      Alert.alert('알림', '텍스트를 입력해주세요.');
-    }
+    const granted = await requestAudioPermission();
+    if (!granted) return;
+
+    try {
+      await ExpoSpeechRecognitionModule.start({
+        lang: 'ko-KR',
+        continuous: true,
+        interimResults: true,
+      });
+      setIsListening(true);
+    } catch (error) {}
   };
+
+  const stopRecognizing = async () => {
+    if (!ENABLE_VOICE) return;
+
+    try {
+      await ExpoSpeechRecognitionModule.stop();
+      setIsListening(false);
+    } catch (e) {}
+  };
+
+  useSpeechRecognitionEvent("result", (event) => {
+    const transcript = event.results?.[0]?.transcript;
+    if (transcript) setRecognizedText(transcript);
+  });
+
+  useSpeechRecognitionEvent("partialresult", (event) => {
+    const transcript = event.text;
+    if (transcript) setRecognizedText(transcript);
+  });
+
+  useSpeechRecognitionEvent("end", () => {
+    setIsListening(false);
+    if (recognizedText.trim()) {
+      handleVoiceSearch(recognizedText);
+    }
+  });
+
+  useSpeechRecognitionEvent("error", () => {
+    setIsListening(false);
+  });
 
   return (
     <View style={styles.container}>
@@ -146,30 +204,37 @@ export default function Home() {
           value={recognizedText}
           onChangeText={setRecognizedText}
           onSubmitEditing={handleTextSearch}
-          editable={!isSearching}
+          editable={!isSearching && !isListening}
         />
-        <TouchableOpacity onPress={handleTextSearch} disabled={isSearching}>
+        <TouchableOpacity onPress={handleTextSearch} disabled={isSearching || isListening}>
           <Ionicons name="search" size={18} color="#FF5900" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.guideTextContainer}>
         <Text style={styles.guideText}>
-          텍스트로 목적지를 검색해 주세요.
+          {isSearching ? '검색 중...' : ENABLE_VOICE ? '마이크를 누르고 목적지를 검색해 주세요.' : '텍스트로 목적지를 검색해 주세요.'}
         </Text>
-        <Text style={styles.exampleText}>예) "서울역"</Text>
+        <Text style={styles.exampleText}>
+          {ENABLE_VOICE ? '예) "서울역까지 가고 싶어"' : '예) "서울역"'}
+        </Text>
       </View>
 
       <View style={styles.centerContent}>
         <TouchableOpacity
           style={[
             styles.micButton,
-            !ENABLE_VOICE && styles.micButtonDisabled,
+            (isListening || isSearching) && styles.micButtonActive,
+            !ENABLE_VOICE && styles.micButtonDisabled
           ]}
-          onPress={handleMicPress}
+          onPress={isListening ? stopRecognizing : startRecognizing}
           disabled={isSearching}
         >
-          <Ionicons name="search-outline" size={100} color="white" />
+          {isSearching ? (
+            <Ionicons name="hourglass-outline" size={100} color="white" />
+          ) : (
+            <Ionicons name={ENABLE_VOICE ? "mic-outline" : "search-outline"} size={100} color="white" />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -177,7 +242,8 @@ export default function Home() {
         <Text style={styles.resultText}>
           {isSearching
             ? '검색 중...'
-            : recognizedText || '위 검색창에 목적지를 입력하세요.'}
+            : recognizedText || (ENABLE_VOICE ? '마이크를 눌러 말해보세요.' : '위 검색창에 목적지를 입력하세요.')
+          }
         </Text>
       </View>
 
@@ -247,6 +313,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
+  },
+  micButtonActive: {
+    shadowColor: '#FF5900',
+    shadowOpacity: 0.6,
+    shadowRadius: 25,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 20,
   },
   micButtonDisabled: {
     backgroundColor: '#ccc',

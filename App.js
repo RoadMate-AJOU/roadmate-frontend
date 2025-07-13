@@ -1,3 +1,4 @@
+// App.js
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -12,9 +13,9 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer independent={true}> {/* 상태 복원 방지 */}
+    <NavigationContainer> {/* independent 제거 ✅ */}
       <Stack.Navigator
-        initialRouteName="Onboarding"
+        initialRouteName="Onboarding" // ✅ 무조건 Onboarding부터 시작
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />

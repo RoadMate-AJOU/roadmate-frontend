@@ -3,8 +3,23 @@ import axios from 'axios';
 export async function fetchBusArrivalTime(
   stationName: string,
   routeName: string
-): Promise<number | null | '운행종료'> {
-  const SERVICE_KEY = 'PIhxU20UmgmdEe6RuG9HysRnlhY4BK%2FiSCzpx3PZWUKZC%2FL5CBexKOji3pXidRt1%2F7jQG2U7S5jdE34xyZco%2BQ%3D%3D';
+): Promise<number | string | '운행종료' | null> {
+  const SERVICE_KEY =
+    'PIhxU20UmgmdEe6RuG9HysRnlhY4BK%2FiSCzpx3PZWUKZC%2FL5CBexKOji3pXidRt1%2F7jQG2U7S5jdE34xyZco%2BQ%3D%3D';
+
+  const normalize = (s: string) => s.replace(/\s/g, '').toLowerCase();
+
+  const isMatchingBus = (apiRtNm: string, desired: string) => {
+    const normApi = normalize(apiRtNm);
+    const normDesired = normalize(desired);
+    return (
+      normApi === normDesired ||
+      normApi.startsWith(normDesired) ||
+      normApi.includes(normDesired) ||
+      normDesired.startsWith(normApi) ||
+      normDesired.includes(normApi)
+    );
+  };
 
   try {
     const arsUrl = `http://ws.bus.go.kr/api/rest/stationinfo/getStationByName?serviceKey=${SERVICE_KEY}&stSrch=${encodeURIComponent(
@@ -13,6 +28,7 @@ export async function fetchBusArrivalTime(
 
     const arsRes = await axios.get(arsUrl, { responseType: 'text' });
     const arsId = arsRes.data.match(/<arsId>(\d+)<\/arsId>/)?.[1];
+
     if (!arsId) {
       console.warn(`⚠️ arsId not found for stationName: ${stationName}`);
       return null;
@@ -30,10 +46,14 @@ export async function fetchBusArrivalTime(
 
       console.log(`🚌 [DEBUG] 비교: rtNm='${rtNm}', 원하는='${routeName}' | 메시지: '${bestMsg}'`);
 
-      if (rtNm?.replace(/\s/g, '') === routeName.replace(/\s/g, '')) {
+      if (rtNm && isMatchingBus(rtNm, routeName)) {
         if (bestMsg.includes('운행종료')) {
           console.warn(`🚫 운행종료된 노선입니다: ${routeName}`);
           return '운행종료';
+        }
+
+        if (bestMsg.includes('출발대기')) {
+          return '출발대기 중';
         }
 
         const match = bestMsg.match(/(\d+)\s*분/);
@@ -42,6 +62,9 @@ export async function fetchBusArrivalTime(
         } else if (bestMsg.includes('곧 도착') || bestMsg.includes('전')) {
           return 0;
         }
+
+        // ⛔️ 그 외 처리 불가한 경우
+        return bestMsg; // 원본 메시지 그대로 반환
       }
     }
 

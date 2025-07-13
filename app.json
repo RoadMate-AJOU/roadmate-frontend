@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kangsubin.roadmate",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "음성 인식을 위해 마이크가 필요합니다."
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone.",
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition."
       }
     },
     "web": {
@@ -36,7 +37,9 @@
         {
           "microphonePermission": "Allow $(PRODUCT_NAME) to use the microphone.",
           "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to use speech recognition.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
       ]
     ],
@@ -46,7 +49,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "63264381-503c-4b56-81a6-d2bd28922d0d"
+        "projectId": "14aee984-70c4-4b41-b22e-c8658c85a5f1"
       }
     },
     "android": {
@@ -55,13 +58,15 @@
         "RECORD_AUDIO",
         "INTERNET",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ],
-      "config" : {
+      "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBnq-rvTryXcM1xgwovc3e6wk_8mERo0PU"
         }
       }
-    }
+    },
+    "owner": "sebeen"
   }
 }

@@ -8,9 +8,14 @@ export default function StepCard({ type, instruction, highlighted, route, emoji,
         <Text style={styles.badgeText}>{emoji || '🚶'}</Text>
       </View>
       <Text style={styles.guidance}>{fullGuidance || '이동 정보 없음'}</Text>
-      <Text style={styles.infoText}>
-        {liveInfo || instruction || (type === 'walk' ? '도보 안내' : '정보 없음')}
-      </Text>
+
+      {/* 도보가 아닐 때만 infoText 렌더링 */}
+      {type !== 'walk' && (
+        <Text style={styles.infoText}>
+          {liveInfo || instruction || '정보 없음'}
+        </Text>
+      )}
+
       {route && <Text style={styles.route}>{route}</Text>}
     </View>
   );
@@ -25,7 +30,7 @@ const styles = StyleSheet.create({
     padding: 14,
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20, // ⬅️ 추가: StepCard 간 아래 여백
+    marginBottom: 20,
   },
   highlightedCard: {
     borderWidth: 2,
