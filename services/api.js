@@ -1,5 +1,4 @@
-// services/api.js
-const BASE_URL = 'http://223.130.135.190:8080/api'; // 실제 백엔드 IP로 변경하세요
+const BASE_URL = 'http://127.20.10.9:4000/api'; // 실제 백엔드 IP로 변경하세요
 
 // 디버깅을 위한 로그 함수
 const debugLog = (tag, message, data = null) => {
@@ -56,7 +55,26 @@ export const poiService = {
       return data;
     } catch (error) {
       debugLog('POI_ERROR', '❌ POI search failed', { error: error.message });
-      throw error;
+
+      // 🔁 샘플 데이터 fallback
+      debugLog('POI_FALLBACK', '📦 샘플 데이터로 대체합니다');
+
+      return {
+        places: [
+          {
+            name: '서울역(세종대로)',
+            lat: 37.5665,
+            lon: 126.9780,
+            address: '서울특별시 종로구 세종대로',
+          },
+          {
+            name: '서울역(자하문로)',
+            lat: 37.5700,
+            lon: 126.982,
+            address: '서울특별시 종로구 자하문로',
+          },
+        ],
+      };
     }
   }
 };
@@ -99,7 +117,13 @@ export const routeService = {
         searchOption: "0"
       };
 
-      appendLog('ROUTE_REQUEST_BODY', requestBody);
+      debugLog('ROUTE_REQUEST_BODY', 'Request body', requestBody);
+
+      debugLog('ROUTE_FETCH', '🚀 실제 fetch 호출 시작!', {
+        url,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
 
       const response = await fetch(url, {
         method: 'POST',
@@ -140,6 +164,7 @@ export const routeService = {
     }
   },
 
+  // 헬스 체크 함수
   healthCheck: async () => {
     try {
       const url = `${BASE_URL}/route/health`;

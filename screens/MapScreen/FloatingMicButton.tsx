@@ -102,7 +102,7 @@ export default function FloatingMicButton() {
       setIsSpeaking(false);
     }
   };
-
+  
   const handleMicPress = async () => {
       if (isListening) {
         // 음성 인식 종료 요청

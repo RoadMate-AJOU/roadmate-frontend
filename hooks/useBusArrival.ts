@@ -1,100 +1,122 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const SERVICE_KEY = 'q54p8xkyPgmvPjABUqrTpr5N%2Fpnw%2FO3luM7nVdCjoACkn%2FSW9mMO6DLkKamWQBk6SvkVlBOOdj2VWJeqcJm%2BCA%3D%3D';
-
-
 interface BusArrivalInfo {
-  routeId: string;
-  routeName: string;
-  locationNo1: string;
-  predictTime1: string;
-  remainSeatCnt1: string;
+  message: string;
 }
 
-export function useBusArrival(
-  startStop: string | undefined,
-  routeName: string | undefined
-) {
+export function useBusArrival(stationName?: string, routeName?: string) {
   const [data, setData] = useState<BusArrivalInfo[]>([]);
-  const [matchedBus, setMatchedBus] = useState<BusArrivalInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [arsId, setArsId] = useState<string | null>(null);
+  const [soonestMinutes, setSoonestMinutes] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const extractMinutesFromMessage = (msg: string): number | null => {
+    const match = msg.match(/(\d+)\s*분/);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
   useEffect(() => {
-    const fetchArsIdAndArrival = async () => {
-      if (!startStop) {
-        setError('정류장 이름이 없습니다.');
-        setLoading(false);
+    let interval: NodeJS.Timeout;
+
+    const fetchBusArrival = async () => {
+      if (!stationName || !routeName) {
+        console.warn('⚠️ 필수 파라미터 누락 → API 호출 중단');
+        console.warn('⛔ stationName:', stationName);
+        console.warn('⛔ routeName:', routeName);
         return;
       }
 
+      console.log('\n============== 🚌 [useBusArrival] 호출 ==============');
+      console.log('🔍 정류장 이름 (stationName):', stationName);
+      console.log('🔍 노선 이름 (routeName):', routeName);
+
+      setLoading(true);
+      setError(null);
+
       try {
-        console.log('routeName : ', routeName);
-        // 1. 정류장명으로 ARS ID 조회
-        const stationResponse = await axios.get(
-          `http://ws.bus.go.kr/api/rest/busRouteInfo/getBusRouteList`,
-          {
-            params: {
-              serviceKey: SERVICE_KEY,
-              stSrch: routeName,
-            },
-          }
-        );
-        console.log('🧾 arsId 응답:', stationResponse.data);
+        const SERVICE_KEY = 'PIhxU20UmgmdEe6RuG9HysRnlhY4BK%2FiSCzpx3PZWUKZC%2FL5CBexKOji3pXidRt1%2F7jQG2U7S5jdE34xyZco%2BQ%3D%3D';
 
-        const stations = stationResponse.data?.ServiceResult?.msgBody?.itemList ?? [];
+        // 1️⃣ arsId 조회
+        const arsUrl = `http://ws.bus.go.kr/api/rest/stationinfo/getStationByName?serviceKey=${SERVICE_KEY}&stSrch=${encodeURIComponent(
+          stationName
+        )}&resultType=xml`;
 
-        if (stations.length === 0) {
-          setError('정류장 정보를 찾을 수 없습니다.');
-          setLoading(false);
-          return;
+        console.log('📡 arsId 조회 URL:', arsUrl);
+
+        const arsRes = await axios.get(arsUrl, { responseType: 'text' });
+        const arsXml = arsRes.data;
+
+        console.log('📦 arsId 응답 XML 일부:\n', arsXml.slice(0, 500));
+
+        const arsIdMatch = arsXml.match(/<arsId>(\d+)<\/arsId>/);
+        const arsId = arsIdMatch?.[1];
+
+        if (!arsId) {
+          console.error('❌ arsId 추출 실패 → stationName이 잘못되었거나 응답에 arsId 없음');
+          throw new Error('arsId를 찾을 수 없습니다.');
         }
 
-        const arsIdFetched = stations[0]?.arsId;
-        setArsId(arsIdFetched);
+        console.log('✅ 추출된 arsId:', arsId);
 
-        // 2. ARS ID로 도착 정보 조회
-        const arrivalResponse = await axios.get(
-          `http://ws.bus.go.kr/api/rest/stationinfo/getStationByUid`,
-          {
-            params: {
-              serviceKey: SERVICE_KEY,
-              arsId: arsIdFetched,
-            },
+        // 2️⃣ 도착정보 조회
+        const arrivalUrl = `http://ws.bus.go.kr/api/rest/stationinfo/getStationByUid?serviceKey=${SERVICE_KEY}&arsId=${arsId}&resultType=xml`;
+
+        console.log('📡 도착정보 조회 URL:', arrivalUrl);
+
+        const arrivalRes = await axios.get(arrivalUrl, { responseType: 'text' });
+        const arrivalXml = arrivalRes.data;
+
+        console.log('📦 도착정보 XML 일부:\n', arrivalXml.slice(0, 500));
+
+        const rows = [...arrivalXml.matchAll(/<itemList>([\s\S]*?)<\/itemList>/g)];
+        console.log(`🔎 총 itemList 갯수: ${rows.length}`);
+
+        const results: BusArrivalInfo[] = [];
+
+        for (const [i, row] of rows.entries()) {
+          const block = row[1];
+          const rtNm = block.match(/<rtNm>(.*?)<\/rtNm>/)?.[1]?.trim();
+          const msg = block.match(/<arrmsg1>(.*?)<\/arrmsg1>/)?.[1]?.trim();
+
+          console.log(`📄 [${i}] 노선: ${rtNm}, 도착 메시지: ${msg}`);
+
+          if (rtNm === routeName && msg) {
+            results.push({ message: msg });
+            console.log(`✅ [${i}] routeName 일치 → 추가됨`);
           }
-        );
-
-        const items = arrivalResponse.data?.ServiceResult?.msgBody?.itemList ?? [];
-
-        const parsedData = items.map((item: any) => ({
-          routeId: item?.busRouteId,
-          routeName: item?.rtNm,
-          locationNo1: item?.stationNm1,
-          predictTime1: item?.arrmsg1,
-          remainSeatCnt1: item?.reride_Num1,
-        }));
-
-        setData(parsedData);
-
-        // 🎯 특정 노선 필터링
-        if (routeName) {
-          const matched = parsedData.find(
-            (bus) => bus.routeName === routeName
-          );
-          setMatchedBus(matched ?? null);
         }
-      } catch (err) {
-        setError('API 요청 중 오류가 발생했습니다.');
-        console.error(err);
+
+        if (results.length === 0) {
+          console.warn('⚠️ 일치하는 도착 메시지가 없습니다');
+        }
+
+        setData(results);
+
+        const minutesList = results
+          .map((r) => extractMinutesFromMessage(r.message))
+          .filter((m): m is number => m !== null);
+
+        const minMinutes = minutesList.length > 0 ? Math.min(...minutesList) : null;
+        setSoonestMinutes(minMinutes);
+
+        console.log('⏱️ 도착까지 가장 빠른 시간:', minMinutes);
+      } catch (err: any) {
+        console.error('❌ useBusArrival API Error:', err.message);
+        setError(err.message || 'API 요청 실패');
+        setData([]);
+        setSoonestMinutes(null);
       } finally {
         setLoading(false);
+        console.log('====================================================\n');
       }
     };
 
-    fetchArsIdAndArrival();
-  }, [startStop, routeName]);
+    fetchBusArrival();
+    interval = setInterval(fetchBusArrival, 20000); // 20초마다 업데이트
 
-  return { data, matchedBus, loading, error, arsId };
+    return () => clearInterval(interval);
+  }, [stationName, routeName]);
+
+  return { data, soonestMinutes, loading, error };
 }
