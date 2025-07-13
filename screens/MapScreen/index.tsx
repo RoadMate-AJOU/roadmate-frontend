@@ -9,6 +9,7 @@ import { fetchBusArrivalTime } from './fetchBusArrivalTime';
 import { fetchSubwayArrivalTime } from './fetchSubwayArrivalTime';
 import tmap_sample4 from '../../data/tmap_sample4.json';
 import tmap_sample5 from '../../data/tmap_sample5.json';
+import { useLocation } from '../../contexts/LocationContext';
 
 export default function MapScreen() {
   const [eta, setEta] = useState('');
@@ -17,12 +18,13 @@ export default function MapScreen() {
   const [routeData, setRouteData] = useState<any>(tmap_sample4);
   const [showAlert, setShowAlert] = useState(false);
   const [answered, setAnswered] = useState(false);
+  const { setLocation } = useLocation();
 
   const guides = routeData?.guides ?? [];
-
   const firstBusGuide = guides.find((guide) => guide.transportType === 'BUS');
   const firstSubwayGuide = guides.find((guide) => guide.transportType === 'SUBWAY');
 
+  // 버스/지하철 도착 시간
   useEffect(() => {
     const fetchArrivalTimes = async () => {
       if (firstBusGuide?.startLocation?.name && firstBusGuide?.busNumber) {
@@ -37,6 +39,7 @@ export default function MapScreen() {
     fetchArrivalTimes();
   }, [firstBusGuide, firstSubwayGuide]);
 
+  // ETA 계산
   useEffect(() => {
     const now = new Date();
     const totalDuration = guides.reduce((sum, guide) => sum + (guide.time ?? 0), 0);
@@ -48,19 +51,24 @@ export default function MapScreen() {
     setEta(`${hours}:${minutes}`);
   }, [busMin, subwayMin, routeData]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!answered) {
-        console.log('🚨 경로 이탈 감지됨 (하드코딩)');
-        setShowAlert(true);
-      }
-    }, 10000);
+  // 경로 이탈 감지 콜백
+  const handleRouteOff = () => {
+    if (!answered) {
+      console.log('🚨 [MapScreen] 경로 이탈 콜백 수신됨');
+      setShowAlert(true);
+    }
+  };
 
-    return () => clearTimeout(timer);
-  }, [answered]);
-
+  // 예 클릭 시 새 경로 반영 + 마커 순간이동
   const handleYes = () => {
     console.log('✅ 예 클릭 → 새 경로로 갱신');
+
+    const firstGuide = tmap_sample5.guides?.[0];
+    if (firstGuide?.lineString) {
+      const [lon, lat] = firstGuide.lineString.split(' ')[0].split(',').map(Number);
+      setLocation({ latitude: lat, longitude: lon }); // 마커 순간이동
+    }
+
     setRouteData(tmap_sample5);
     setShowAlert(false);
     setAnswered(true);
@@ -75,7 +83,14 @@ export default function MapScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContainer}>
       <Header destination="광화문역" eta={eta} />
-      <MapDisplay />
+
+      {/* ✅ isRoutingActive=true 추가 */}
+      <MapDisplay
+        onOffRouteDetected={handleRouteOff}
+        routeData={routeData}
+        isRoutingActive={true}
+      />
+
       <DetailedDirection routeData={routeData} />
       <TransportSteps routeData={routeData} />
       <MicButton />
