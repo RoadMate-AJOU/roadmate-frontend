@@ -15,7 +15,9 @@ export default function FloatingMicButton() {
   const [debugIntent, setDebugIntent] = useState(''); // ✅ intent 디버깅용 상태
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
-  const recognizedTextRef = useRef('');
+    const [isListening, setIsListening] = useState(false);
+    const recognizedTextRef = useRef('');
+
 
 
   // 🔄 말하는 동안 애니메이션
@@ -55,8 +57,6 @@ export default function FloatingMicButton() {
       glowAnim.setValue(0);
     }
   }, [isSpeaking]);
-
-  // ✅ 백엔드로 전송 및 응답 처리
   const sendToBackend = async (text: string) => {
     try {
       const res = await fetch('http://223.130.135.190:8080/nlp/chat', {
@@ -126,7 +126,7 @@ export default function FloatingMicButton() {
       setIsSpeaking(false);
     }
   };
-
+  
   // ✅ 마이크 클릭 시
   const handleMicPress = async () => {
     if (isListening) {
@@ -150,6 +150,65 @@ export default function FloatingMicButton() {
       }
     }
   };
+  const handleMicPress = async () => {
+      if (isListening) {
+        // 음성 인식 종료 요청
+        try {
+          await ExpoSpeechRecognitionModule.stop();
+        } catch (err) {
+          console.error('❌ 음성 인식 종료 오류:', err);
+        }
+      } else {
+        // 음성 인식 시작
+        try {
+          await ExpoSpeechRecognitionModule.start({
+            lang: 'ko-KR',
+            continuous: false,
+            interimResults: true,
+          });
+          setIsListening(true);
+          setIsSpeaking(true);
+        } catch (err) {
+          console.error('❌ 음성 인식 시작 오류:', err);
+        }
+      }
+    };
+
+    useSpeechRecognitionEvent('result', (event) => {
+        const finalText = event.results?.[0]?.transcript;
+        if (finalText) {
+          recognizedTextRef.current = finalText;
+          console.log('✅ 최종 인식:', finalText);
+        }
+      });
+
+    // 음성 인식 종료 후 처리 (→ 백엔드 전송)
+      useSpeechRecognitionEvent('end', () => {
+        setIsListening(false);
+        const finalText = recognizedTextRef.current;
+        if (finalText) {
+          Speech.speak(finalText, {
+            language: 'ko-KR',
+            onDone: () => {
+              console.log('✅ TTS 완료, 백엔드 전송 시작');
+              sendToBackend(finalText);
+            },
+            onError: (err) => {
+              console.error('❌ TTS 오류:', err);
+              setIsSpeaking(false);
+            },
+          });
+        } else {
+          console.log('⚠️ 음성이 인식되지 않았습니다');
+          setIsSpeaking(false);
+        }
+      });
+
+   useSpeechRecognitionEvent('error', (event) => {
+       console.error('❌ 음성 인식 에러:', event.error);
+       setIsListening(false);
+       setIsSpeaking(false);
+     });
 
   useSpeechRecognitionEvent('result', (event) => {
     const finalText = event.results?.[0]?.transcript;

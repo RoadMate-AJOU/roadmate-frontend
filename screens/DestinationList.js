@@ -23,6 +23,12 @@ const appendLog = (title, payload) => {
   console.log(`📝 [${title}]`, JSON.stringify(payload, null, 2));
 };
 
+
+// ✅ 여기에 추가!
+const appendLog = (title, payload) => {
+  console.log(`📝 [${title}]`, JSON.stringify(payload, null, 2));
+};
+
 export default function DestinationList() {
   const [poiList, setPoiList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -131,8 +137,6 @@ export default function DestinationList() {
         const currentLocation = { latitude: 37.52759656, longitude: 126.91994412 };
 
     setRouteSearching(item.id);
-
-
     appendLog('📤 경로 요청 파라미터', {
       startLat: currentLocation.latitude,
       startLon: currentLocation.longitude,
@@ -170,7 +174,7 @@ export default function DestinationList() {
       Alert.alert('경로 검색 실패', '경로를 찾을 수 없습니다. 기본 지도로 이동합니다.', [{
         text: '확인',
         onPress: () => {
-          router.push({
+          router.replace({
             pathname: '/map',
             params: {
               destinationName: item.name,
