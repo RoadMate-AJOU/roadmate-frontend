@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Animated, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { Animated, TouchableOpacity, View, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { router } from 'expo-router';
@@ -7,15 +7,18 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
+import { setVoiceOwner, getVoiceOwner, clearVoiceOwner } from '../../hooks/VoiceOwner';
 
 export default function FloatingMicButton() {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [debugIntent, setDebugIntent] = useState(''); // ✅ intent 디버깅용 상태
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
-    const [isListening, setIsListening] = useState(false);
-    const recognizedTextRef = useRef('');
+  const recognizedTextRef = useRef('');
 
 
+  // 🔄 말하는 동안 애니메이션
   useEffect(() => {
     if (isSpeaking) {
       Animated.loop(
@@ -53,32 +56,66 @@ export default function FloatingMicButton() {
     }
   }, [isSpeaking]);
 
-  // sendToBackend 내에서만 intent, status 체크 + 라우팅
+  // ✅ 백엔드로 전송 및 응답 처리
   const sendToBackend = async (text: string) => {
     try {
       const res = await fetch('http://223.130.135.190:8080/nlp/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionId: 'session-001',
+          sessionId: 'session-002',
           text: text,
         }),
       });
 
       const json = await res.json();
       const { status, intent, responseMessage } = json;
+      setDebugIntent(intent); // ✅ intent 표시용 저장
 
       if (responseMessage) {
         Speech.speak(responseMessage, {
           language: 'ko-KR',
           onDone: () => {
-            if (status === 'API_REQUIRED') {
-              if (intent === 'extract_route' || intent === 'research_route') {
-                router.replace('/(tabs)');
+            (async () => {
+              if (status === 'API_REQUIRED') {
+                if (intent === 'real_time_bus_arrival' || intent === 'real_time_subway_arrival') {
+//                   const busNumber = json.data.bus_number;
+//                   const stationName = json.data.station_name;
+
+//                   const arrivalResult = await fetchBusArrivalTime(stationName, busNumber);
+
+                  let speechText = '';
+                  speechText = `9분 남았습니다.`;
+//                   if (arrivalResult === '운행종료') {
+//                     speechText = `${busNumber}번은 운행이 종료되었습니다.`;
+//                   } else if (typeof arrivalResult === 'number') {
+//                     speechText = `${busNumber}번은 ${arrivalResult}분 뒤에 도착합니다.`;
+//                   } else if (typeof arrivalResult === 'string') {
+//                     speechText = `${busNumber}번 도착 정보: ${arrivalResult}`;
+//                   } else {
+//                     speechText = `${busNumber}번 도착 정보를 찾을 수 없습니다.`;
+//                   }
+
+                  Speech.speak(speechText, {
+                    language: 'ko-KR',
+                    onDone: () => setIsSpeaking(false),
+                  });
+                }
+                else if (intent === 'extract_route' || intent === 'research_route') {
+                Speech.speak('홈으로 이동할게요. 목적지를 다시 검색해주세요.', {
+                                    language: 'ko-KR',
+                                    onDone: () => setIsSpeaking(false),
+                                  });
+                  router.replace('/(tabs)');
+                } else {
+                  setIsSpeaking(false);
+                }
+              } else {
+                setIsSpeaking(false);
               }
-            }
-            setIsSpeaking(false);
+            })(); // ← 즉시 실행 async 함수
           },
+
           onError: () => setIsSpeaking(false),
         });
       } else {
@@ -90,64 +127,66 @@ export default function FloatingMicButton() {
     }
   };
 
-
+  // ✅ 마이크 클릭 시
   const handleMicPress = async () => {
-      if (isListening) {
-        // 음성 인식 종료 요청
-        try {
-          await ExpoSpeechRecognitionModule.stop();
-        } catch (err) {
-          console.error('❌ 음성 인식 종료 오류:', err);
-        }
-      } else {
-        // 음성 인식 시작
-        try {
-          await ExpoSpeechRecognitionModule.start({
-            lang: 'ko-KR',
-            continuous: false,
-            interimResults: true,
-          });
-          setIsListening(true);
-          setIsSpeaking(true);
-        } catch (err) {
-          console.error('❌ 음성 인식 시작 오류:', err);
-        }
+    if (isListening) {
+      try {
+        await ExpoSpeechRecognitionModule.stop();
+      } catch (err) {
+        console.error('❌ 음성 인식 종료 오류:', err);
       }
-    };
-
-    useSpeechRecognitionEvent('result', (event) => {
-        const finalText = event.results?.[0]?.transcript;
-        if (finalText) {
-          recognizedTextRef.current = finalText;
-          console.log('✅ 최종 인식:', finalText);
-        }
-      });
-
-    // 마이크 종료 후 처리
-    useSpeechRecognitionEvent('end', () => {
-      setIsListening(false);
-      const finalText = recognizedTextRef.current;
-
-      if (finalText) {
-        // 1단계: 사용자가 말한 걸 TTS로 읽고
-        Speech.speak(finalText, {
-          language: 'ko-KR',
-          onDone: () => {
-            // 2단계: TTS 끝나면 백엔드로 전송
-            sendToBackend(finalText);
-          },
-          onError: () => setIsSpeaking(false),
+    } else {
+      try {
+        setVoiceOwner('mic');
+        await ExpoSpeechRecognitionModule.start({
+          lang: 'ko-KR',
+          continuous: false,
+          interimResults: true,
         });
-      } else {
-        setIsSpeaking(false);
+        setIsListening(true);
+        setIsSpeaking(true);
+      } catch (err) {
+        console.error('❌ 음성 인식 시작 오류:', err);
       }
-    });
+    }
+  };
 
-   useSpeechRecognitionEvent('error', (event) => {
-       console.error('❌ 음성 인식 에러:', event.error);
-       setIsListening(false);
-       setIsSpeaking(false);
-     });
+  useSpeechRecognitionEvent('result', (event) => {
+    const finalText = event.results?.[0]?.transcript;
+    if (finalText) {
+      recognizedTextRef.current = finalText;
+      console.log('✅ 최종 인식:', finalText);
+    }
+  });
+
+  useSpeechRecognitionEvent('end', () => {
+    if (getVoiceOwner() !== 'mic') return;
+    setIsListening(false);
+    clearVoiceOwner();
+    const finalText = recognizedTextRef.current;
+    if (finalText) {
+      Speech.speak(finalText, {
+        language: 'ko-KR',
+        onDone: () => {
+          console.log('✅ TTS 완료, 백엔드 전송 시작');
+          sendToBackend(finalText);
+        },
+        onError: (err) => {
+          console.error('❌ TTS 오류:', err);
+          setIsSpeaking(false);
+        },
+      });
+    } else {
+      console.log('⚠️ 음성이 인식되지 않았습니다');
+      setIsSpeaking(false);
+    }
+  });
+
+  useSpeechRecognitionEvent('error', (event) => {
+    console.error('❌ 음성 인식 에러:', event.error);
+    setIsListening(false);
+    setIsSpeaking(false);
+  });
 
   const glowOpacity = glowAnim.interpolate({
     inputRange: [0, 1],
@@ -194,8 +233,6 @@ export default function FloatingMicButton() {
           />
         </TouchableOpacity>
       </Animated.View>
-
-      <View style={styles.borderRing} />
     </View>
   );
 }
@@ -249,5 +286,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     elevation: 0,
     zIndex: 0,
+  },
+  intentText: {
+    marginTop: 8,
+    color: '#333',
+    fontSize: 12,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    elevation: 2,
   },
 });

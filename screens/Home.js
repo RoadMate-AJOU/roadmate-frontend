@@ -19,7 +19,7 @@ import { router } from 'expo-router';
 import { useLocation } from '../contexts/LocationContext';
 import { poiService, gptService } from '../services/api';
 import * as Speech from 'expo-speech';
-
+import { setVoiceOwner, getVoiceOwner, clearVoiceOwner } from '../hooks/VoiceOwner';
 const ENABLE_VOICE = true;
 
 export default function Home() {
@@ -44,7 +44,8 @@ export default function Home() {
   };
 
   const handleTextSearch = async () => {
-    if (!recognizedText.trim()) {
+    const inputText = recognizedText.trim();
+    if (!inputText) {
       Alert.alert('알림', '목적지를 입력해주세요.');
       return;
     }
@@ -52,13 +53,43 @@ export default function Home() {
     setIsSearching(true);
 
     try {
-      await searchPOI(recognizedText.trim());
+      const res = await fetch('http://223.130.135.190:8080/nlp/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'session-002',
+          text: inputText,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const result = await res.json();
+
+      const destination = result.data?.destination;
+      if (!destination) {
+        Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 입력해주세요.');
+        return;
+      }
+
+      Speech.speak(`${destination} 검색 결과를 알려드릴게요. 원하시는 목적지를 눌러 주세요.`, {
+        language: 'ko-KR',
+        pitch: 1.0,
+        rate: 1.0,
+      });
+
+
+      await searchPOI(destination);
     } catch (error) {
-      Alert.alert('검색 오류', '검색 중 문제가 발생했습니다. 다시 시도해주세요.');
+      Alert.alert('텍스트 검색 오류', '검색 중 문제가 발생했습니다. 다시 시도해주세요.');
+      console.error('🔴 handleTextSearch error:', error);
     } finally {
       setIsSearching(false);
     }
   };
+
 
   const handleVoiceSearch = async (voiceText) => {
     if (!voiceText.trim()) {
@@ -73,7 +104,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionId: 'session-001',
+          sessionId: 'session-002',
           text: voiceText,
         }),
       });
@@ -85,24 +116,21 @@ export default function Home() {
 
       const result = await res.json();
 
-      if (result.responseMessage) {
-        // 1. 사용자에게 Alert로 표시
-        Alert.alert('안내', result.responseMessage);
 
-        // 2. TTS로 읽어주기
-        Speech.speak(result.responseMessage, {
-          language: 'ko-KR',
-          pitch: 1.0,
-          rate: 1.0,
-        });
-      }
 
       // 2. 목적지 추출 후 POI 검색 실행
       const destination = result.data?.destination;
-//      if (!destination) {
-//        Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 말씀해주세요.');
-//        return;
-//      }
+      if (!destination) {
+        Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 말씀해주세요.');
+        return;
+      }
+
+      Speech.speak(`${destination} 검색 결과를 알려드릴게요. 원하시는 목적지를 눌러 주세요.`, {
+        language: 'ko-KR',
+        pitch: 1.0,
+        rate: 1.0,
+      });
+
 
       await searchPOI(destination);
 
@@ -115,7 +143,8 @@ export default function Home() {
   };
 
   const searchPOI = async (keyword) => {
-    const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
+//  const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
+    const currentLocation = { latitude: 37.52759656, longitude: 126.91994412 };
 
     try {
       const response = await poiService.searchPOI(
@@ -144,7 +173,7 @@ export default function Home() {
   const startRecognizing = async () => {
     if (!ENABLE_VOICE) {
       if (recognizedText.trim()) {
-        handleTextSearch();ㅛ
+        handleTextSearch();
       } else {
         Alert.alert('알림', '음성 인식이 비활성화되어 있습니다. 텍스트로 검색해주세요.');
       }
@@ -155,6 +184,7 @@ export default function Home() {
     if (!granted) return;
 
     try {
+        setVoiceOwner('home');
       await ExpoSpeechRecognitionModule.start({
         lang: 'ko-KR',
         continuous: true,
@@ -184,7 +214,9 @@ export default function Home() {
   });
 
   useSpeechRecognitionEvent("end", () => {
+  if (getVoiceOwner() !== 'home') return;
     setIsListening(false);
+    clearVoiceOwner();
     if (recognizedText.trim()) {
       handleVoiceSearch(recognizedText);
     }
@@ -270,10 +302,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFEFE5',
     paddingHorizontal: 15,
-    paddingVertical: 8,
     borderRadius: 20,
     width: '80%',
-    height: '12%',
+    height: 64, // ✅ 고정값으로 설정
     alignSelf: 'center',
     marginBottom: 20,
   },
@@ -310,16 +341,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.4,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
   },
   micButtonActive: {
     shadowColor: '#FF5900',
-    shadowOpacity: 0.6,
-    shadowRadius: 25,
+    shadowOpacity: 0.9,          // ✅ 더 진하게
+    shadowRadius: 40,            // ✅ Glow 범위 넓게
     shadowOffset: { width: 0, height: 0 },
-    elevation: 20,
+    elevation: 30,               // ✅ Android에서 glow 강화
   },
   micButtonDisabled: {
     backgroundColor: '#ccc',

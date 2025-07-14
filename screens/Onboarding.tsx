@@ -143,21 +143,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ff6600',
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 12,
     marginRight: 6,
     alignItems: 'center',
+    // ✅ 입체감 추가
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6, // Android용
   },
+
   signupButton: {
     flex: 1,
     backgroundColor: '#ff6600',
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 12,
     marginLeft: 6,
     alignItems: 'center',
+    // ✅ 입체감 추가
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
   },
+
   buttonText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 'bold',
-  },
+    // ✅ 약간 음각 느낌
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  }
+
 });

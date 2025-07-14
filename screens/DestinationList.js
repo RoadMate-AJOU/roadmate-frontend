@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLocation } from '../contexts/LocationContext';
 import { poiService, routeService } from '../services/api';
-
+import * as Speech from 'expo-speech';
 
 // ✅ 여기에 추가!
 const appendLog = (title, payload) => {
@@ -34,22 +34,33 @@ export default function DestinationList() {
   const params = useLocalSearchParams();
 
   const processPoiResults = useCallback((results) => {
-    const parsedList = results.map((place, idx) => ({
-      id: `${place.name}-${idx}-${Date.now()}`,
-      name: place.name,
-      distance: place.distance ? `${Math.round(place.distance)}m` : '',
-      category: place.category || '기타',
-      address: place.address || '주소 정보 없음',
-      lat: place.latitude,
-      lon: place.longitude,
-      tel: place.tel || '',
-    }));
-    setPoiList(parsedList);
-  }, []);
+    const parsedList = results.map((place, idx) => {
+      const rawDistance = place.distance || 0;
+      const formattedDistance =
+        rawDistance >= 1000
+          ? `${(rawDistance / 1000).toFixed(1)}km`
+          : `${Math.round(rawDistance)}m`;
+
+      return {
+        id: `${place.name}-${idx}-${Date.now()}`,
+        name: place.name,
+        distance: formattedDistance,
+        category: place.category || '기타',
+        address: place.address || '주소 정보 없음',
+        lat: place.latitude,
+        lon: place.longitude,
+        tel: place.tel || '',
+      };
+    });
+
+        setPoiList(parsedList);
+      }, []);
 
   const searchPOI = useCallback(async (keyword) => {
     if (!keyword?.trim()) return;
-    const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
+//    const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
+        const currentLocation = { latitude: 37.52759656, longitude: 126.91994412 };
+
     try {
       setLoading(true);
       const response = await poiService.searchPOI(keyword.trim(), currentLocation.latitude, currentLocation.longitude);
@@ -116,8 +127,11 @@ export default function DestinationList() {
   }, [params, initialized, processPoiResults, searchPOI, loadSampleData]);
 
   const handleSelectDestination = useCallback(async (item) => {
-    const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
+//    const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
+        const currentLocation = { latitude: 37.52759656, longitude: 126.91994412 };
+
     setRouteSearching(item.id);
+
 
     appendLog('📤 경로 요청 파라미터', {
       startLat: currentLocation.latitude,
@@ -132,31 +146,31 @@ export default function DestinationList() {
       const routeResponse = await routeService.searchRoute(
         currentLocation.latitude, currentLocation.longitude, item.lat, item.lon, '현재 위치', item.name
       );
-
-      appendLog('✅ 경로 응답 결과', routeResponse);
-
-      router.push({
-        pathname: '/map',
-        params: {
-          destinationName: item.name,
-          destinationLat: item.lat,
-          destinationLon: item.lon,
-          destinationAddress: item.address,
-          startLat: currentLocation.latitude,
-          startLon: currentLocation.longitude,
-          startName: '현재 위치',
-          routeData: JSON.stringify(routeResponse),
-          totalDistance: routeResponse.totalDistance || 0,
-          totalTime: routeResponse.totalTime || 0,
-          totalFare: routeResponse.totalFare || 0,
+      Speech.speak(`현재 위치에서 ${item.name}까지 경로를 탐색합니다.`, {
+        language: 'ko-KR',
+        pitch: 1.0,
+        rate: 1.0,
+        onDone: () => {
+          router.push({
+            pathname: '/map',
+            params: {
+              destinationName: item.name,
+              destinationLat: item.lat,
+              destinationLon: item.lon,
+              destinationAddress: item.address,
+              startLat: currentLocation.latitude,
+              startLon: currentLocation.longitude,
+              startName: '현재 위치',
+            },
+          });
         },
-      });
+      }); // ✅ 이 괄호 2개가 꼭 필요합니다
     } catch (error) {
       appendLog('❌ 경로 요청 실패', error);
       Alert.alert('경로 검색 실패', '경로를 찾을 수 없습니다. 기본 지도로 이동합니다.', [{
         text: '확인',
         onPress: () => {
-          router.replace({
+          router.push({
             pathname: '/map',
             params: {
               destinationName: item.name,
@@ -265,7 +279,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -303,16 +317,17 @@ const styles = StyleSheet.create({
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        shadowOffset: { width: 0, height: 3 },   // ⬅️ 살짝 더 선명하게
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
       },
       android: {
-        elevation: 1,
+        elevation: 3, // ⬅️ 기존보다 약간 강조
       },
     }),
     position: 'relative',
   },
+
   cardSearching: {
     opacity: 0.7,
     backgroundColor: '#FFF8F2',
@@ -391,19 +406,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 30 : 20,
     alignSelf: 'center',
-    backgroundColor: '#FF5900',
+    backgroundColor: '#FF8A33',
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 30,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 4 }, // ⬅️ 더 깊은 그림자
         shadowOpacity: 0.2,
-        shadowRadius: 4,
+        shadowRadius: 6,
       },
       android: {
-        elevation: 4,
+        elevation: 6, // ⬅️ 입체감 있게
       },
     }),
   },

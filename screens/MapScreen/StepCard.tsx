@@ -23,8 +23,8 @@ export default function StepCard({ type, instruction, highlighted, route, emoji,
 
 const styles = StyleSheet.create({
   card: {
-    width: 160,
-    height: 220,
+    width: 180,
+    height: 240,
     borderRadius: 12,
     backgroundColor: '#fffaf0',
     padding: 14,
@@ -37,13 +37,15 @@ const styles = StyleSheet.create({
     borderColor: '#ff6600',
   },
   badge: {
-    backgroundColor: '#ff6600',
+    backgroundColor: '#fff',        // 흰색 배경
+    borderWidth: 2,                 // 테두리 두께 추가
+    borderColor: '#ff6600',         // 테두리 주황색
     borderRadius: 16,
     padding: 6,
     marginBottom: 6,
   },
   badgeText: {
-    color: '#fff',
+    color: '#ff6600',               // 글자도 주황색으로 변경 (가독성 ↑)
     fontWeight: 'bold',
     fontSize: 16,
   },

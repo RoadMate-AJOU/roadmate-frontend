@@ -87,7 +87,7 @@ const appendLog = (title, payload) => {
 export const routeService = {
   searchRoute: async (startLat, startLon, endLat, endLon, startName = '현재 위치', endName = '목적지') => {
     appendLog('ROUTE_SEARCH', '=== 경로 탐색 시작 ===');
-    const sessionId = 'session-001';
+    const sessionId = 'session-002';
     appendLog('ROUTE_PARAMS', {
       sessionId,
       startLat,
@@ -107,7 +107,7 @@ export const routeService = {
       appendLog('ROUTE_REQUEST_URL', { url });
 
       const requestBody = {
-        sessionId: "session-001",
+        sessionId: "session-002",
         startLat: parseFloat(startLat),
         startLon: parseFloat(startLon),
         endLat: parseFloat(endLat),

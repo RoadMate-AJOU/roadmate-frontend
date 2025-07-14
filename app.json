@@ -41,7 +41,8 @@
             "com.google.android.googlequicksearchbox"
           ]
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
@@ -49,7 +50,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "14aee984-70c4-4b41-b22e-c8658c85a5f1"
+        "projectId": "162cfb5f-e783-4e17-b121-8a2d53c1aa1c"
       }
     },
     "android": {
@@ -67,6 +68,6 @@
         }
       }
     },
-    "owner": "sebeen"
+    "owner": "asdfasdf3586"
   }
 }

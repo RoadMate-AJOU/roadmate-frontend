@@ -1,37 +1,57 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
-  TouchableOpacity,
-  Modal,
-  Button,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useLocation } from '../../contexts/LocationContext';
-import tmap_sample4 from '../../data/tmap_sample4.json';
 
 const screenHeight = Dimensions.get('window').height;
 
-export default function MapDisplay() {
+interface Props {
+  routeData: any;
+  onOffRouteDetected: () => void;
+  isRoutingActive: boolean;
+}
+
+export default function MapDisplay({ routeData, onOffRouteDetected, isRoutingActive }: Props) {
   const { location, setLocation, setCurrentLegIndex } = useLocation();
-  const [isOffRoute, setIsOffRoute] = useState(false);
-  const [showRerouteAlert, setShowRerouteAlert] = useState(false);
-  const [routeCoords, setRouteCoords] = useState([]);
+  const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
   const mapRef = useRef(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ✅ lineString 파서
-  const parseLineString = (lineString) => {
+  const parseLineString = (lineString: string) => {
     return lineString.split(' ').map((coord) => {
       const [lon, lat] = coord.split(',').map(Number);
       return { latitude: lat, longitude: lon };
     });
   };
 
-  // ✅ 초기 위치 설정
+  useEffect(() => {
+    console.log('🧭 [MapDisplay] routeData 변경됨');
+    if (!routeData?.guides || routeData.guides.length === 0) {
+      console.log('⛔ routeData가 비어있습니다.');
+      setRouteCoords([]);
+      return;
+    }
+
+    const allCoords = routeData.guides
+      .map((guide) => guide.lineString)
+      .filter(Boolean)
+      .flatMap(parseLineString);
+
+    console.log('📦 경로 좌표 수:', allCoords.length);
+    if (allCoords.length > 0) {
+      console.log('📍 첫 좌표:', allCoords[0]);
+      console.log('📍 마지막 좌표:', allCoords[allCoords.length - 1]);
+    }
+
+    setRouteCoords(allCoords);
+  }, [routeData]);
+
   useEffect(() => {
     const initLocation = async () => {
       try {
@@ -50,7 +70,7 @@ export default function MapDisplay() {
         setLocation(pos);
       } catch (e) {
         const fallback = { latitude: 37.5665, longitude: 126.9780 };
-        console.warn('⚠️ 위치 가져오기 실패, fallback 사용');
+        console.warn('⚠️ 위치 가져오기 실패, fallback 사용:', fallback);
         setLocation(fallback);
       }
     };
@@ -58,21 +78,9 @@ export default function MapDisplay() {
     initLocation();
   }, []);
 
-  // ✅ tmap_sample4 lineString 기반 경로 로드
   useEffect(() => {
-    const allCoords = tmap_sample4.guides
-      .map((guide) => guide.lineString)
-      .filter(Boolean)
-      .flatMap(parseLineString);
-
-    console.log('📦 경로 로드됨 (lineString 기반), 총 좌표 수:', allCoords.length);
-    setRouteCoords(allCoords);
-  }, []);
-
-  // ✅ 마커 시뮬레이션 이동 + 하이라이트 전환
-  useEffect(() => {
-    if (!routeCoords || routeCoords.length === 0) {
-      console.log('⛔ routeCoords 비어 있음. 마커 시뮬레이션 중단');
+    if (!routeCoords || routeCoords.length === 0 || !isRoutingActive) {
+      console.log('⛔ 마커 이동 조건 불충분 → 중단');
       return;
     }
 
@@ -84,14 +92,31 @@ export default function MapDisplay() {
         return;
       }
 
-      const point = routeCoords[i];
-      setLocation(point);
-      console.log(`🟠 [MapDisplay] 마커 이동 [${i}] →`, point);
+      let point = routeCoords[i];
 
-      // ✅ 현재 point가 어떤 leg 구간인지 계산해서 currentLegIndex 설정
+      if (i === 14) {
+        point = {
+          latitude: point.latitude + 0.0003,
+          longitude: point.longitude + 0.0003,
+        };
+        console.log('🚨 경로 이탈 발생 → 이탈 위치:', point);
+        setLocation(point);
+        clearInterval(intervalRef.current!);
+
+        setTimeout(() => {
+          console.log('📡 onOffRouteDetected() 호출');
+          onOffRouteDetected();
+        }, 2000);
+
+        return;
+      }
+
+      setLocation(point);
+      console.log(`🟠 마커 이동 [${i}] →`, point);
+
       let acc = 0;
-      for (let legIdx = 0; legIdx < tmap_sample4.guides.length; legIdx++) {
-        const guide = tmap_sample4.guides[legIdx];
+      for (let legIdx = 0; legIdx < routeData.guides.length; legIdx++) {
+        const guide = routeData.guides[legIdx];
         const points = parseLineString(guide.lineString);
         if (i < acc + points.length) {
           setCurrentLegIndex(legIdx);
@@ -101,21 +126,24 @@ export default function MapDisplay() {
       }
 
       i++;
-    }, 500); // 0.5초 간격
+    }, 1000);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [routeCoords]);
+  }, [routeCoords, isRoutingActive]);
 
   const centerLatitude = location?.latitude || 37.5665;
   const centerLongitude = location?.longitude || 126.9780;
+  console.log('🗺️ 현재 지도 중심 좌표:', centerLatitude, centerLongitude);
+  console.log('📍 마커 위치:', location);
+  console.log('📏 Polyline 좌표 수:', routeCoords.length);
 
   return (
     <TouchableOpacity activeOpacity={0.9}>
       <MapView
         ref={mapRef}
-        style={{ height: screenHeight * 0.4 }}
+        style={{ height: screenHeight * 0.5 }}
         region={{
           latitude: centerLatitude,
           longitude: centerLongitude,
@@ -127,60 +155,40 @@ export default function MapDisplay() {
           <Marker
             coordinate={location}
             title="현재 위치"
-          >
-            <View style={styles.customMarker} />
-          </Marker>
-        )}
-
-        {routeCoords.length > 0 && (
-          <Polyline
-            coordinates={routeCoords}
-            strokeColor="#007AFF"
-            strokeWidth={5}
+            pinColor="#FF5900"
           />
         )}
-      </MapView>
 
-      <Modal visible={showRerouteAlert} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalText}>경로에서 벗어났습니다. 재탐색할까요?</Text>
-            <Button title="재탐색하기" onPress={() => setShowRerouteAlert(false)} />
-          </View>
-        </View>
-      </Modal>
+        {routeData?.guides?.map((guide, idx) => {
+          const coords = parseLineString(guide.lineString);
+
+          let strokeColor = '#C0C0C0'; // 도보 기본값
+          let strokeWidth = 4;
+          let lineDashPattern = [6, 6]; // 점선
+
+          if (guide.transportType === 'BUS') {
+            strokeColor = '#007AFF'; // 파란
+            lineDashPattern = undefined;
+          } else if (guide.transportType === 'SUBWAY') {
+            strokeColor = '#FF5900'; // 주황
+            lineDashPattern = undefined;
+          }
+
+          return (
+            <Polyline
+              key={`polyline-${idx}`}
+              coordinates={coords}
+              strokeColor={strokeColor}
+              strokeWidth={strokeWidth}
+              lineDashPattern={lineDashPattern}
+            />
+          );
+        })}
+
+      </MapView>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: 'white',
-    padding: 24,
-    borderRadius: 12,
-    width: '80%',
-  },
-  modalText: {
-    fontSize: 16,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-    customMarker: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-      backgroundColor: '#FF5900', // 주황색 원형 마커
-      borderWidth: 2,
-      borderColor: '#fff',
-
-      // ✅ Android 전용 그림자 느낌
-      elevation: 6, // 숫자 클수록 그림자 강함
-    },
-
 });
