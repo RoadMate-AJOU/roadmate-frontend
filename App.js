@@ -9,6 +9,7 @@ import { useFonts } from 'expo-font';
 
 import Onboarding from './screens/Onboarding';
 import Signup from './screens/signup';
+import MyPage from './screens/MyPage';
 import Home from './screens/home';
 import MapScreen from './screens/MapScreen';
 
@@ -35,6 +36,7 @@ export default function App() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Onboarding" component={Onboarding} />
         <Stack.Screen name="Signup" component={Signup} />
+        <Stack.Screen name="MyPage" component={MyPage} />
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Map" component={MapScreen} />
       </Stack.Navigator>

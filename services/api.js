@@ -1,4 +1,4 @@
-const BASE_URL = 'http://223.130.135.190:8080/api'; // 실제 백엔드 IP로 변경하세요
+const BASE_URL = 'http://49.50.131.200:8080';
 
 // 디버깅을 위한 로그 함수
 const debugLog = (tag, message, data = null) => {
@@ -24,13 +24,19 @@ const handleApiResponse = async (response) => {
   return data;
 };
 
+// TODO : 형님이 하셔야 할 거
+// 1. 회원가입 처리하는 함수
+// 2. 로그인 처리하는 함수
+// 3. 회원 탈퇴 처리하는 함수
+// 4. 회원 조회 함수 -> 이거는 백이 구현 안 할 수도 있어서 물어볼게여
+
 // POI 검색 서비스
 export const poiService = {
   searchPOI: async (keyword, latitude, longitude) => {
     try {
       debugLog('POI_SEARCH', '🔍 POI 검색 시작', { keyword, latitude, longitude });
 
-      const url = `${BASE_URL}/poi/search`;
+      const url = `${BASE_URL}/api/poi/search`;
       debugLog('POI_REQUEST', '📍 POI API URL', { url });
 
       const requestBody = {
@@ -79,6 +85,32 @@ export const poiService = {
   }
 };
 
+// GPT 질문 처리 서비스
+export const gptService = {
+  askQuestion: async (sessionId, text) => {
+    const url = `${BASE_URL}/nlp/chat`;
+
+    debugLog('GPT_QUESTION', '🎤 GPT 질의 시작', { sessionId, text });
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ sessionId, text }),
+    });
+
+    const data = await handleApiResponse(response);
+
+    const destination = data?.data?.destination;
+
+    debugLog('GPT_RESULT', '🧠 목적지 추출 결과', { destination });
+
+    return destination; // 목적지 문자열만 반환
+  }
+};
+
+
 // 디버깅 로그 출력용 (사용자 정의 함수)
 const appendLog = (title, payload) => {
   console.log(`📝 [${title}]`, JSON.stringify(payload, null, 2));
@@ -103,7 +135,7 @@ export const routeService = {
         throw new Error('출발지 또는 목적지 좌표가 없습니다');
       }
 
-      const url = `${BASE_URL}/route/search`;
+      const url = `${BASE_URL}/api/route/search`;
       appendLog('ROUTE_REQUEST_URL', { url });
 
       const requestBody = {
@@ -166,7 +198,7 @@ export const routeService = {
 
   healthCheck: async () => {
     try {
-      const url = `${BASE_URL}/route/health`;
+      const url = `${BASE_URL}/api/route/health`;
       appendLog('HEALTH_CHECK_URL', { url });
 
       const response = await fetch(url, {

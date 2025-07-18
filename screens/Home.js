@@ -5,22 +5,22 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  ScrollView,
   PermissionsAndroid,
   Platform,
   Alert,
 } from 'react-native';
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from 'expo-speech-recognition';
+//import {
+//  ExpoSpeechRecognitionModule,
+//  useSpeechRecognitionEvent,
+//} from 'expo-speech-recognition';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useLocation } from '../contexts/LocationContext';
 import { poiService, gptService } from '../services/api';
 import * as Speech from 'expo-speech';
 import { setVoiceOwner, getVoiceOwner, clearVoiceOwner } from '../hooks/VoiceOwner';
-const ENABLE_VOICE = true;
+
+const ENABLE_VOICE = false;
 
 export default function Home() {
   const [recognizedText, setRecognizedText] = useState('');
@@ -28,6 +28,7 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const { location } = useLocation();
 
+// 마이크 권한 요청하는 함수
   const requestAudioPermission = async () => {
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
@@ -43,6 +44,7 @@ export default function Home() {
     return true;
   };
 
+// 텍스트로 목적지 검색하는 함수
   const handleTextSearch = async () => {
     const inputText = recognizedText.trim();
     if (!inputText) {
@@ -53,22 +55,10 @@ export default function Home() {
     setIsSearching(true);
 
     try {
-      const res = await fetch('http://223.130.135.190:8080/nlp/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'session-002',
-          text: inputText,
-        }),
-      });
+    // 나중에 게스트인지 회원인지에 따라 sessionId 부여 방식 달라짐
+      const sessionId = "guest001"
+      const destination = await gptService.askQuestion(sessionId, inputText);
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      const result = await res.json();
-
-      const destination = result.data?.destination;
       if (!destination) {
         Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 입력해주세요.');
         return;
@@ -80,7 +70,6 @@ export default function Home() {
         rate: 1.0,
       });
 
-
       await searchPOI(destination);
     } catch (error) {
       Alert.alert('텍스트 검색 오류', '검색 중 문제가 발생했습니다. 다시 시도해주세요.');
@@ -91,6 +80,7 @@ export default function Home() {
   };
 
 
+// 음성으로 목적지 검색하는 함수
   const handleVoiceSearch = async (voiceText) => {
     if (!voiceText.trim()) {
       Alert.alert('알림', '음성이 인식되지 않았습니다. 다시 시도해주세요.');
@@ -100,26 +90,10 @@ export default function Home() {
     setIsSearching(true);
 
     try {
-      const res = await fetch('http://223.130.135.190:8080/nlp/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'session-002',
-          text: voiceText,
-        }),
-      });
+      // 나중에 게스트인지 회원인지에 따라 sessionId 부여 방식 달라짐
+      const sessionId = "guest001"
+      const destination = await gptService.askQuestion(sessionId, voiceText);
 
-      if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-
-          }
-
-      const result = await res.json();
-
-
-
-      // 2. 목적지 추출 후 POI 검색 실행
-      const destination = result.data?.destination;
       if (!destination) {
         Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 말씀해주세요.');
         return;
@@ -131,9 +105,7 @@ export default function Home() {
         rate: 1.0,
       });
 
-
       await searchPOI(destination);
-
     } catch (error) {
       Alert.alert('음성 검색 오류', '음성 인식 중 문제가 발생했습니다. 다시 시도해주세요.');
       console.error('🔴 handleVoiceSearch error:', error);
@@ -141,19 +113,24 @@ export default function Home() {
       setIsSearching(false);
     }
   };
-  
 
+  
+    // gpt가 목적지 추출해서 주면 그걸로 목적지 리스트 검색하는 함수
   const searchPOI = async (keyword) => {
-//  const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
-    const currentLocation = { latitude: 37.52759656, longitude: 126.91994412 };
+  const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
+
+  // 이 현재 위치 데이터는 서울시에서 시뮬레이션 하고자 넣은 값임 (데이콘 회사 위치임)
+    //    const currentLocation = { latitude: 37.52759656, longitude: 126.91994412 };
 
     try {
+    // 목적지 리스트 검색한 결과 받아옴
       const response = await poiService.searchPOI(
         keyword,
         currentLocation.latitude,
         currentLocation.longitude
       );
 
+// 값 desination (즉, DestinationList)에 넘김
       if (response.places && response.places.length > 0) {
         router.push({
           pathname: '/destination',
@@ -171,6 +148,7 @@ export default function Home() {
     }
   };
 
+// 음성 인식 시작
   const startRecognizing = async () => {
     if (!ENABLE_VOICE) {
       if (recognizedText.trim()) {
@@ -186,6 +164,7 @@ export default function Home() {
 
     try {
         setVoiceOwner('home');
+        // 인식 시작
       await ExpoSpeechRecognitionModule.start({
         lang: 'ko-KR',
         continuous: true,
@@ -195,6 +174,7 @@ export default function Home() {
     } catch (error) {}
   };
 
+// 인식 종료
   const stopRecognizing = async () => {
     if (!ENABLE_VOICE) return;
 
@@ -205,17 +185,20 @@ export default function Home() {
   };
 
   useSpeechRecognitionEvent("result", (event) => {
+    if (!ENABLE_VOICE) return;
     const transcript = event.results?.[0]?.transcript;
     if (transcript) setRecognizedText(transcript);
   });
 
   useSpeechRecognitionEvent("partialresult", (event) => {
+    if (!ENABLE_VOICE) return;
     const transcript = event.text;
     if (transcript) setRecognizedText(transcript);
   });
 
   useSpeechRecognitionEvent("end", () => {
-  if (getVoiceOwner() !== 'home') return;
+    if (!ENABLE_VOICE) return;
+    if (getVoiceOwner() !== 'home') return;
     setIsListening(false);
     clearVoiceOwner();
     if (recognizedText.trim()) {
@@ -224,8 +207,10 @@ export default function Home() {
   });
 
   useSpeechRecognitionEvent("error", () => {
+    if (!ENABLE_VOICE) return;
     setIsListening(false);
   });
+
 
   return (
     <View style={styles.container}>

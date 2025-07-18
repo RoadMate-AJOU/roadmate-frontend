@@ -49,13 +49,16 @@ export default function OnboardingScreen() {
     </View>
   );
 
-  const handleSignup = () => {
-    router.push('/signup'); // ✅ 파일 기반 라우팅
-  };
 
-  const handleGuest = () => {
-    router.replace('/(tabs)'); // ✅ 탭 그룹으로 이동
-  };
+// TODO: 형님이 하실 거 - sessionId="guest{랜덤값}" 부여 , 화면 이동시 파라미터로  {sessionId = “guest{랜덤값}”,  userstate = “guest”} (랜덤값: 3자리?) 넘기기
+const handleGuest = () => {
+  router.replace('/(tabs)');
+};
+
+const handleSignup = async () => {
+  await AsyncStorage.setItem('onboardingSeen', 'true'); // ✅ 회원가입자는 온보딩 봤음
+  router.push('/signup');
+};
 
   return (
     <View style={styles.container}>
@@ -112,6 +115,7 @@ const styles = StyleSheet.create({
     color: '#333',
     lineHeight: 24,
     marginBottom: 24,
+    fontFamily: 'Pretendard', // ✅ 폰트 적용
   },
   pagination: {
     flexDirection: 'row',
@@ -146,14 +150,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginRight: 6,
     alignItems: 'center',
-    // ✅ 입체감 추가
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 6, // Android용
+    elevation: 6,
   },
-
   signupButton: {
     flex: 1,
     backgroundColor: '#ff6600',
@@ -161,22 +163,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginLeft: 6,
     alignItems: 'center',
-    // ✅ 입체감 추가
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 6,
   },
-
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    // ✅ 약간 음각 느낌
+    fontFamily: 'PretendardBold', // ✅ 폰트 적용
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
-  }
-
+  },
 });
+

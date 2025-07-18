@@ -27,7 +27,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/roadmate_logo.png",
-          "imageWidth": 200,
+          "imageWidth": 400,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }

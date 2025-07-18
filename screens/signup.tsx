@@ -48,6 +48,7 @@ export default function SignUpScreen({ onSubmit }: Props) {
     setForm({ ...form, [field]: value });
   };
 
+// TODO : 형님이 하실 거 - api.js 에서 회원가입 함수 연결 -> 백에서 sessionId 받아와서 /(tabs)로 화면 넘길 때  {sessionId = {백에서 받은 sessionId},  userstate = “signed”} 파라미터 같이 넘기기
   const handlePress = () => {
     const { name, username, password, confirmPassword } = form;
     if (!name || !username || !password || !confirmPassword) {
@@ -61,7 +62,7 @@ export default function SignUpScreen({ onSubmit }: Props) {
 
     onSubmit?.(form);
 
-    navigation.replace('Home');
+    navigation.replace('/(tabs)');
   };
 
   const isPasswordMatch =
