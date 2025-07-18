@@ -23,12 +23,6 @@ const appendLog = (title, payload) => {
   console.log(`📝 [${title}]`, JSON.stringify(payload, null, 2));
 };
 
-
-// ✅ 여기에 추가!
-const appendLog = (title, payload) => {
-  console.log(`📝 [${title}]`, JSON.stringify(payload, null, 2));
-};
-
 export default function DestinationList() {
   const [poiList, setPoiList] = useState([]);
   const [loading, setLoading] = useState(false);
