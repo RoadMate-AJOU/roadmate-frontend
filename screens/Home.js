@@ -15,6 +15,7 @@ import { useLocation } from '../contexts/LocationContext';
 import { poiService, gptService } from '../services/api';
 import * as Speech from 'expo-speech';
 import { setVoiceOwner, getVoiceOwner, clearVoiceOwner } from '../hooks/VoiceOwner';
+import { useSessionStore } from '@/contexts/sessionStore';
 
 const ENABLE_VOICE = false;
 
@@ -23,7 +24,7 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const { location } = useLocation();
-  const { sessionId = 'guest001' } = useLocalSearchParams();
+  const { sessionId } = useSessionStore();
 
   useEffect(() => {
     Speech.speak('화면에 보이는 마이크를 눌러 목적지를 말해보세요.', {

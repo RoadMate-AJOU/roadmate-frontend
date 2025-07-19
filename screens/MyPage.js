@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useSessionStore } from '@/contexts/sessionStore';
 
-export default function MyPage() {
+export default function MyPageScreen() {
   const router = useRouter();
-  const { userstate: rawUserState } = useLocalSearchParams();
-  const userstate = rawUserState || 'guest';
+  const { userState, clearSession } = useSessionStore();
 
   const handleSignUp = () => {
     router.push('/signup');
@@ -15,7 +15,8 @@ export default function MyPage() {
     router.push('/login');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await clearSession();
     console.log('✅ 로그아웃 처리');
     router.replace('/onboarding');
   };
@@ -26,7 +27,8 @@ export default function MyPage() {
       {
         text: '탈퇴',
         style: 'destructive',
-        onPress: () => {
+        onPress: async () => {
+          await clearSession();
           console.log('✅ 회원탈퇴 처리');
           router.replace('/onboarding');
         },
@@ -37,12 +39,12 @@ export default function MyPage() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/images/elderly.png')} // ✅ 이미지 경로 반영
+        source={require('../assets/images/elderly.png')}
         style={styles.image}
         resizeMode="contain"
       />
 
-      {userstate === 'guest' && (
+      {userState === 'guest' && (
         <>
           <TouchableOpacity style={styles.button} onPress={handleSignUp}>
             <Text style={styles.buttonText}>회원가입</Text>
@@ -53,7 +55,7 @@ export default function MyPage() {
         </>
       )}
 
-      {userstate === 'signed' && (
+      {userState === 'signed' && (
         <>
           <TouchableOpacity style={styles.button} onPress={handleLogout}>
             <Text style={styles.buttonText}>로그아웃</Text>
@@ -85,6 +87,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 40,
     borderRadius: 25,
+    width: 150,
+    alignItems: 'center'
   },
   dangerButton: {
     backgroundColor: '#B00020',

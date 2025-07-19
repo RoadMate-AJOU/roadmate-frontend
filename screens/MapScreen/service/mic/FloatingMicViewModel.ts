@@ -4,6 +4,7 @@ import * as Speech from 'expo-speech';
 import { useRouter } from 'expo-router';
 import { gptService } from '@/services/api';
 import { setVoiceOwner, getVoiceOwner, clearVoiceOwner } from '@/hooks/VoiceOwner';
+import { useSessionStore } from '@/contexts/sessionStore';
 // import { useSpeechRecognitionEvent, ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
 
 export function useVoiceViewModel(ENABLE_VOICE = false) {
@@ -12,6 +13,7 @@ export function useVoiceViewModel(ENABLE_VOICE = false) {
     const [debugIntent, setDebugIntent] = useState('');
     const recognizedTextRef = useRef('');
     const router = useRouter();
+    const { sessionId } = useSessionStore();
 
     const startListening = async () => {
         if (!ENABLE_VOICE) return;
@@ -76,7 +78,7 @@ export function useVoiceViewModel(ENABLE_VOICE = false) {
         if (finalText) {
             Speech.speak(finalText, {
                 language: 'ko-KR',
-                onDone: () => sendToBackend(finalText, finalText),
+                onDone: () => sendToBackend(sessionId ?? '', finalText),
             });
         } else {
             setIsSpeaking(false);
