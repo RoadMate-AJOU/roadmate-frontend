@@ -1,27 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Text, ScrollView, Modal, TouchableOpacity, Alert } from 'react-native';
-import Header from './Header';
-import MapDisplay from './MapDisplay';
-import DetailedDirection from './DetailedDirections';
-import TransportSteps from './TransportSteps';
-import MicButton from './FloatingMicButton';
-import { fetchBusArrivalTime } from './fetchBusArrivalTime';
-import { fetchSubwayArrivalTime } from './fetchSubwayArrivalTime';
-import { useLocation } from '../../contexts/LocationContext';
-import { routeService } from '../../services/api';
+import Header from '../component/Header';
+import MapDisplay from '../component/MapDisplay';
+import DetailedDirection from '../component/DetailedDirections';
+import TransportSteps from '../component/TransportSteps';
+import MicButton from '../component/FloatingMicButton';
+import { fetchBusArrivalTime } from '../service/transportTime/fetchBusArrivalTime';
+import { fetchSubwayArrivalTime } from '../service/transportTime/fetchSubwayArrivalTime';
+import { useLocation } from '../../../contexts/LocationContext';
+import { routeService } from '../../../services/api';
 import { useLocalSearchParams } from 'expo-router';
 
 
 export default function MapScreen() {
-    const {
-      sessionId,
-      destinationName,
-      destinationLat,
-      destinationLon,
-      startLat,
-      startLon,
-      startName,
-    } = useLocalSearchParams();
+  const {
+    sessionId,
+    destinationName,
+    destinationLat,
+    destinationLon,
+    startLat,
+    startLon,
+    startName,
+  } = useLocalSearchParams();
   const [eta, setEta] = useState('');
   const [busMin, setBusMin] = useState<number | null>(null);
   const [subwayMin, setSubwayMin] = useState<number | null>(null);
@@ -35,13 +35,13 @@ export default function MapScreen() {
     const fetchInitialRoute = async () => {
       try {
         const result = await routeService.searchRoute(
-        sessionId,
+          sessionId,
           parseFloat(startLat as string),
-                  parseFloat(startLon as string),
-                  parseFloat(destinationLat as string),
-                  parseFloat(destinationLon as string),
-                  startName as string,
-                  destinationName as string
+          parseFloat(startLon as string),
+          parseFloat(destinationLat as string),
+          parseFloat(destinationLon as string),
+          startName as string,
+          destinationName as string
         );
         setRouteData(result);
       } catch (err) {
@@ -49,8 +49,8 @@ export default function MapScreen() {
       }
     };
     if (startLat && startLon && destinationLat && destinationLon) {
-        fetchInitialRoute();
-        }
+      fetchInitialRoute();
+    }
   }, [startLat, startLon, destinationLat, destinationLon]);
 
   const guides = routeData?.guides ?? [];
@@ -127,34 +127,34 @@ export default function MapScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContainer}>
-      <Header destination={destinationName} eta={eta} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContainer}>
+        <Header destination={destinationName} eta={eta} />
 
-      {routeData && (
-        <>
-          <MapDisplay onOffRouteDetected={handleRouteOff} routeData={routeData} isRoutingActive={true} />
-          <TransportSteps routeData={routeData} />
-        </>
-      )}
+        {routeData && (
+          <>
+            <MapDisplay onOffRouteDetected={handleRouteOff} routeData={routeData} isRoutingActive={true} />
+            <TransportSteps routeData={routeData} />
+          </>
+        )}
 
-      <Modal visible={showAlert} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalText}>경로에서 이탈한 것 같아요. 새로운 경로를 탐색할까요?</Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.buttonYes} onPress={handleYes}>
-                <Text style={styles.buttonText}>예</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.buttonNo} onPress={handleNo}>
-                <Text style={styles.buttonText}>아니요</Text>
-              </TouchableOpacity>
+        <Modal visible={showAlert} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <Text style={styles.modalText}>경로에서 이탈한 것 같아요. 새로운 경로를 탐색할까요?</Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.buttonYes} onPress={handleYes}>
+                  <Text style={styles.buttonText}>예</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.buttonNo} onPress={handleNo}>
+                  <Text style={styles.buttonText}>아니요</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-    </ScrollView>
+        </Modal>
+      </ScrollView>
       <MicButton />
-      </View>
+    </View>
   );
 }
 

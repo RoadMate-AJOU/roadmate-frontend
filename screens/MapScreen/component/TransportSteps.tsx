@@ -1,17 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import StepCard from './StepCard';
-import { useLocation } from '../../contexts/LocationContext';
-import { fetchBusArrivalTime } from '../MapScreen/fetchBusArrivalTime';
-import { fetchSubwayArrivalTime } from '../MapScreen/fetchSubwayArrivalTime';
+import { useLocation } from '../../../contexts/LocationContext';
+import { fetchBusArrivalTime } from '../service/transportTime/fetchBusArrivalTime';
+import { fetchSubwayArrivalTime } from '../service/transportTime/fetchSubwayArrivalTime';
 import { Dimensions } from 'react-native';
 const windowWidth = Dimensions.get('window').width;
 import * as Speech from 'expo-speech';
+import { StepModel } from '../model/StepModel';
 
 
 export default function TransportSteps({ routeData }: { routeData: any }) {
   const { currentLegIndex } = useLocation();
-  const [stableSteps, setStableSteps] = useState([]);
+  const [stableSteps, setStableSteps] = useState<StepModel[]>([]);
   const [liveInfoMap, setLiveInfoMap] = useState<Record<number, string>>({});
   const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const validLegIndex = currentLegIndex < 0 ? 0 : currentLegIndex;
@@ -88,20 +89,20 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
     setStableSteps(mainSteps);
     fetchLiveInfos(mainSteps, '🔄 localRouteData or legIndex 변경');
 
-        const highlightedStep = mainSteps.find((s) => s.highlighted);
-        if (highlightedStep) {
-          speakStep(highlightedStep);
-        }
+    const highlightedStep = mainSteps.find((s) => s.highlighted);
+    if (highlightedStep) {
+      speakStep(highlightedStep);
+    }
 
     // ✅ 하이라이트 카드 중앙으로 스크롤
-        const highlightedIndex = mainSteps.findIndex(step => step.highlighted);
-        if (highlightedIndex >= 0 && scrollRef.current) {
-          // 카드 크기 + 마진 기준
-          const CARD_WIDTH = 160 + 12; // 카드 width + marginHorizontal (6 * 2)
-          const screenCenterOffset = (CARD_WIDTH * highlightedIndex) - (windowWidth / 2 - CARD_WIDTH / 2);
+    const highlightedIndex = mainSteps.findIndex(step => step.highlighted);
+    if (highlightedIndex >= 0 && scrollRef.current) {
+      // 카드 크기 + 마진 기준
+      const CARD_WIDTH = 160 + 12; // 카드 width + marginHorizontal (6 * 2)
+      const screenCenterOffset = (CARD_WIDTH * highlightedIndex) - (windowWidth / 2 - CARD_WIDTH / 2);
 
-          scrollRef.current.scrollTo({ x: screenCenterOffset, animated: true });
-        }
+      scrollRef.current.scrollTo({ x: screenCenterOffset, animated: true });
+    }
 
     if (fetchIntervalRef.current) clearInterval(fetchIntervalRef.current);
     fetchIntervalRef.current = setInterval(() => {
@@ -117,7 +118,7 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
     };
   }, [localRouteData, currentLegIndex]);
 
-  const fetchLiveInfos = async (steps: any[], source: string) => {
+  const fetchLiveInfos = async (steps: StepModel[], source: string) => {
     console.log(`🔍 [fetchLiveInfos] ${source} - 시작`);
     const newLiveInfoMap: Record<number, string> = {};
 
@@ -166,7 +167,7 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
   return (
     <View style={transportStepsStyles.container}>
       <ScrollView
-      ref={scrollRef}
+        ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={transportStepsStyles.scrollContent}

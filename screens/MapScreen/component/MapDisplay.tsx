@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { useLocation } from '../../contexts/LocationContext';
+import { useLocation } from '../../../contexts/LocationContext';
 
 const screenHeight = Dimensions.get('window').height;
 
