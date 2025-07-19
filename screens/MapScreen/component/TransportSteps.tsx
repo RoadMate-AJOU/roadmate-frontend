@@ -175,15 +175,18 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
         {stableSteps.map((step, index) => (
           <View key={`step-${step.originalIndex || index}`} style={transportStepsStyles.cardWrapper}>
             <StepCard
-              type={step.type}
-              instruction={step.instruction}
-              highlighted={step.highlighted}
-              route={step.route}
-              emoji={step.emoji}
-              fullGuidance={step.fullGuidance}
-              liveInfo={liveInfoMap[step.originalIndex]}
-              exitName={step.exitName}
-            />
+  type={step.type}
+  instruction={step.instruction}
+  highlighted={step.highlighted}
+  route={step.route}
+  emoji={step.emoji}
+  fullGuidance={step.fullGuidance}
+  liveInfo={liveInfoMap[step.originalIndex]}
+  exitName={step.exitName}
+  startLocation={step.startLocation}         // ✅ 추가
+  routeName={step.routeName}                 // ✅ 추가
+/>
+
           </View>
         ))}
       </ScrollView>

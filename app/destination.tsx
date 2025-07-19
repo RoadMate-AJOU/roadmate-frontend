@@ -1,4 +1,4 @@
-import DestinationList from '@/screens/DestinationList';
+import DestinationList from '@/screens/DestinationList/screen/DestinationList';
 
 export default function DestinationPage() {
   return <DestinationList />;
