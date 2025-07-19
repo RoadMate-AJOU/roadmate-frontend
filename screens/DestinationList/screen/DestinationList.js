@@ -15,6 +15,7 @@ import * as Speech from 'expo-speech';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DestinationItem from '../component/DestinationItem';
 import { useDestinationListViewModel } from '../service/DestinationViewModel';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // ✅ 여기에 추가!
 const appendLog = (title, payload) => {
@@ -22,6 +23,7 @@ const appendLog = (title, payload) => {
 };
 
 export default function DestinationList() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
   const isActiveRef = useRef(true);
@@ -62,7 +64,7 @@ export default function DestinationList() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#FF5900" />
         </TouchableOpacity>
@@ -105,7 +107,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
   },
   button: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 30 : 20,
+    bottom: Platform.OS === 'ios' ? 50 : 40,
     alignSelf: 'center',
     backgroundColor: '#FF8A33',
     paddingHorizontal: 32,
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: 'bold',
   },
 });

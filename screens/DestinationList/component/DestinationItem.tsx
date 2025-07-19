@@ -28,7 +28,8 @@ export default function DestinationItem({
         >
             <View style={styles.info}>
                 <View style={styles.titleRow}>
-                    <Text style={styles.title}>{item.name}</Text>
+                    <Text style={styles.title} numberOfLines={2}
+                        ellipsizeMode="tail">{item.name}</Text>
                     <Text style={styles.distance}>{item.distance}</Text>
                 </View>
                 <Text style={styles.category}>{item.category}</Text>
@@ -45,39 +46,23 @@ export default function DestinationItem({
             </View>
             {isSearching && (
                 <View style={styles.searchingOverlay}>
-                    <ActivityIndicator size="small" color="#FF5900" />
+                    <ActivityIndicator size={20} color="#FF5900" />
                     <Text style={styles.searchingText}>경로 검색 중...</Text>
                 </View>
             )}
         </TouchableOpacity>
     );
 }
-
 const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(250,129,47,0.15)',
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.1,
-                shadowRadius: 6,
-            },
-            android: {
-                elevation: 3,
-            },
-        }),
-        position: 'relative',
+        alignItems: 'flex-start',
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderColor: '#eee',
     },
     cardSearching: {
-        opacity: 0.7,
-        backgroundColor: '#FFF8F2',
+        opacity: 0.6,
     },
     info: {
         flex: 1,
@@ -88,18 +73,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     title: {
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: 25,
+        fontWeight: '600',
         flex: 1,
+        marginRight: 12,
     },
     distance: {
-        fontSize: 14,
+        fontSize: 19,
         color: '#FF5900',
         fontWeight: '600',
     },
     category: {
-        fontSize: 14,
-        color: '#555',
+        fontSize: 17,
+        color: '#888',
         marginTop: 4,
     },
     addressRow: {
@@ -109,25 +95,25 @@ const styles = StyleSheet.create({
     },
     address: {
         marginLeft: 4,
-        fontSize: 13,
+        fontSize: 17,
         color: '#666',
         flex: 1,
     },
     searchingOverlay: {
         position: 'absolute',
-        right: 16,
+        right: 5,
         top: '50%',
         transform: [{ translateY: -15 }],
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: '#FFF8F2',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
     },
     searchingText: {
         marginLeft: 6,
-        fontSize: 12,
+        fontSize: 15,
         color: '#FF5900',
         fontWeight: '500',
     },
