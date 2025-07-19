@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Dimensions } from 'react-native';
 import StepCard from './StepCard';
 import { useLocation } from '../../contexts/LocationContext';
 import { fetchBusArrivalTime } from '../MapScreen/fetchBusArrivalTime';
 import { fetchSubwayArrivalTime } from '../MapScreen/fetchSubwayArrivalTime';
-import { Dimensions } from 'react-native';
-const windowWidth = Dimensions.get('window').width;
 import * as Speech from 'expo-speech';
 
+const windowWidth = Dimensions.get('window').width;
 
 export default function TransportSteps({ routeData }: { routeData: any }) {
   const { currentLegIndex } = useLocation();
@@ -16,7 +15,6 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
   const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const validLegIndex = currentLegIndex < 0 ? 0 : currentLegIndex;
   const scrollRef = useRef<ScrollView>(null);
-
 
   const [localRouteData, setLocalRouteData] = useState(routeData);
 
@@ -39,7 +37,6 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
     }
   }
 
-  // 🧠 외부에서 routeData 변경되면 반영
   useEffect(() => {
     console.log('🔁 props.routeData 변경 감지됨 → localRouteData 업데이트');
     setLocalRouteData(routeData);
@@ -57,7 +54,6 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
     const mainSteps = localRouteData.guides.map((guide, index) => {
       const { transportType, time, routeName, busNumber, guidance, startLocation } = guide;
 
-
       console.log(`🔎 Guide#${index} transportType=${transportType}, start=${startLocation?.name}, route=${routeName}`);
 
       let type: 'walk' | 'bus' | 'subway' = 'walk';
@@ -65,7 +61,6 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
       else if (transportType === 'SUBWAY') type = 'subway';
 
       const exitName = extractExitName(guidance, type);
-
       const timeText = time ? `${Math.ceil(time / 60)}분` : '정보 없음';
       const route = busNumber || routeName || '';
 
@@ -83,25 +78,21 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
       };
     });
 
-
-
     setStableSteps(mainSteps);
     fetchLiveInfos(mainSteps, '🔄 localRouteData or legIndex 변경');
 
-        const highlightedStep = mainSteps.find((s) => s.highlighted);
-        if (highlightedStep) {
-          speakStep(highlightedStep);
-        }
+    const highlightedStep = mainSteps.find((s) => s.highlighted);
+    if (highlightedStep) {
+      speakStep(highlightedStep);
+    }
 
     // ✅ 하이라이트 카드 중앙으로 스크롤
-        const highlightedIndex = mainSteps.findIndex(step => step.highlighted);
-        if (highlightedIndex >= 0 && scrollRef.current) {
-          // 카드 크기 + 마진 기준
-          const CARD_WIDTH = 160 + 12; // 카드 width + marginHorizontal (6 * 2)
-          const screenCenterOffset = (CARD_WIDTH * highlightedIndex) - (windowWidth / 2 - CARD_WIDTH / 2);
-
-          scrollRef.current.scrollTo({ x: screenCenterOffset, animated: true });
-        }
+    const highlightedIndex = mainSteps.findIndex(step => step.highlighted);
+    if (highlightedIndex >= 0 && scrollRef.current) {
+      const CARD_WIDTH = 160 + 12;
+      const screenCenterOffset = (CARD_WIDTH * highlightedIndex) - (windowWidth / 2 - CARD_WIDTH / 2);
+      scrollRef.current.scrollTo({ x: screenCenterOffset, animated: true });
+    }
 
     if (fetchIntervalRef.current) clearInterval(fetchIntervalRef.current);
     fetchIntervalRef.current = setInterval(() => {
@@ -166,7 +157,7 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
   return (
     <View style={transportStepsStyles.container}>
       <ScrollView
-      ref={scrollRef}
+        ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={transportStepsStyles.scrollContent}

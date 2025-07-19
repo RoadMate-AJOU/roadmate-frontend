@@ -126,7 +126,7 @@ export default function MapDisplay({ routeData, onOffRouteDetected, isRoutingAct
       }
 
       i++;
-    }, 1000);
+    }, 1000); // 🔁 기존 500ms → 1000ms로 유지
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -167,10 +167,10 @@ export default function MapDisplay({ routeData, onOffRouteDetected, isRoutingAct
           let lineDashPattern = [6, 6]; // 점선
 
           if (guide.transportType === 'BUS') {
-            strokeColor = '#007AFF'; // 파란
+            strokeColor = '#007AFF';
             lineDashPattern = undefined;
           } else if (guide.transportType === 'SUBWAY') {
-            strokeColor = '#FF5900'; // 주황
+            strokeColor = '#FF5900';
             lineDashPattern = undefined;
           }
 
@@ -184,11 +184,9 @@ export default function MapDisplay({ routeData, onOffRouteDetected, isRoutingAct
             />
           );
         })}
-
       </MapView>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
-});
+const styles = StyleSheet.create({});
