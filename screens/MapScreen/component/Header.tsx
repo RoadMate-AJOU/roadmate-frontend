@@ -14,7 +14,7 @@ export default function Header({ destination, eta }: HeaderProps) {
 
   return (
     <View style={styles.headerContainer}>
-      <TouchableOpacity onPress={() => router.push('/destination')}>
+      <TouchableOpacity onPress={() => router.back()}>
         <Ionicons name="arrow-back" size={24} color="#333" />
       </TouchableOpacity>
       <Text style={styles.destinationText}>📍 {destination}</Text>
