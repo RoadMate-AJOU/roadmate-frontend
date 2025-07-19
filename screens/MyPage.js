@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 export default function MyPage() {
   const router = useRouter();
 
-  const handleLogin = () => {
+  const handleSighUp = () => {
     router.push('/signup'); // ✅ signup.js로 이동
   };
 
@@ -35,7 +35,7 @@ export default function MyPage() {
 // userstate는 온보딩 -> 홈 -> 마이페이지 로 페이지 이동할때마다 파라미터로 데이터 받아오면 됩니당
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+      <TouchableOpacity style={styles.button} onPress={handleSighUp}>
         <Text style={styles.buttonText}>회원가입</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={handleLogout}>

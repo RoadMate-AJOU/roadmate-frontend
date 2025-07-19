@@ -27,6 +27,8 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const { location } = useLocation();
+  // 나중에 게스트인지 회원인지에 따라 sessionId 부여 방식 달라짐
+  const sessionId = "guest001"
 
 // 마이크 권한 요청하는 함수
   const requestAudioPermission = async () => {
@@ -90,8 +92,6 @@ export default function Home() {
     setIsSearching(true);
 
     try {
-      // 나중에 게스트인지 회원인지에 따라 sessionId 부여 방식 달라짐
-      const sessionId = "guest001"
       const destination = await gptService.askQuestion(sessionId, voiceText);
 
       if (!destination) {
@@ -117,10 +117,10 @@ export default function Home() {
   
     // gpt가 목적지 추출해서 주면 그걸로 목적지 리스트 검색하는 함수
   const searchPOI = async (keyword) => {
-  const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
+//  const currentLocation = location || { latitude: 37.2816, longitude: 127.0453 };
 
   // 이 현재 위치 데이터는 서울시에서 시뮬레이션 하고자 넣은 값임 (데이콘 회사 위치임)
-    //    const currentLocation = { latitude: 37.52759656, longitude: 126.91994412 };
+        const currentLocation = { latitude: 37.52759656, longitude: 126.91994412 };
 
     try {
     // 목적지 리스트 검색한 결과 받아옴
@@ -135,6 +135,7 @@ export default function Home() {
         router.push({
           pathname: '/destination',
           params: {
+            sessionId : sessionId,
             searchKeyword: keyword,
             poiResults: JSON.stringify(response.places),
             totalCount: response.totalCount,
@@ -184,32 +185,32 @@ export default function Home() {
     } catch (e) {}
   };
 
-  useSpeechRecognitionEvent("result", (event) => {
-    if (!ENABLE_VOICE) return;
-    const transcript = event.results?.[0]?.transcript;
-    if (transcript) setRecognizedText(transcript);
-  });
-
-  useSpeechRecognitionEvent("partialresult", (event) => {
-    if (!ENABLE_VOICE) return;
-    const transcript = event.text;
-    if (transcript) setRecognizedText(transcript);
-  });
-
-  useSpeechRecognitionEvent("end", () => {
-    if (!ENABLE_VOICE) return;
-    if (getVoiceOwner() !== 'home') return;
-    setIsListening(false);
-    clearVoiceOwner();
-    if (recognizedText.trim()) {
-      handleVoiceSearch(recognizedText);
-    }
-  });
-
-  useSpeechRecognitionEvent("error", () => {
-    if (!ENABLE_VOICE) return;
-    setIsListening(false);
-  });
+//  useSpeechRecognitionEvent("result", (event) => {
+//    if (!ENABLE_VOICE) return;
+//    const transcript = event.results?.[0]?.transcript;
+//    if (transcript) setRecognizedText(transcript);
+//  });
+//
+//  useSpeechRecognitionEvent("partialresult", (event) => {
+//    if (!ENABLE_VOICE) return;
+//    const transcript = event.text;
+//    if (transcript) setRecognizedText(transcript);
+//  });
+//
+//  useSpeechRecognitionEvent("end", () => {
+//    if (!ENABLE_VOICE) return;
+//    if (getVoiceOwner() !== 'home') return;
+//    setIsListening(false);
+//    clearVoiceOwner();
+//    if (recognizedText.trim()) {
+//      handleVoiceSearch(recognizedText);
+//    }
+//  });
+//
+//  useSpeechRecognitionEvent("error", () => {
+//    if (!ENABLE_VOICE) return;
+//    setIsListening(false);
+//  });
 
 
   return (

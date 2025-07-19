@@ -14,6 +14,7 @@ import { useLocalSearchParams } from 'expo-router';
 
 export default function MapScreen() {
     const {
+      sessionId,
       destinationName,
       destinationLat,
       destinationLon,
@@ -34,6 +35,7 @@ export default function MapScreen() {
     const fetchInitialRoute = async () => {
       try {
         const result = await routeService.searchRoute(
+        sessionId,
           parseFloat(startLat as string),
                   parseFloat(startLon as string),
                   parseFloat(destinationLat as string),

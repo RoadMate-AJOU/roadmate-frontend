@@ -141,8 +141,9 @@ export default function DestinationList() {
     });
 
     try {
+    const sessionId = params.sessionId
       const routeResponse = await routeService.searchRoute(
-        currentLocation.latitude, currentLocation.longitude, item.lat, item.lon, '현재 위치', item.name
+        sessionId, currentLocation.latitude, currentLocation.longitude, item.lat, item.lon, '현재 위치', item.name
       );
       Speech.speak(`현재 위치에서 ${item.name}까지 경로를 탐색합니다.`, {
         language: 'ko-KR',
@@ -152,6 +153,7 @@ export default function DestinationList() {
           router.push({
             pathname: '/map',
             params: {
+              sessionId : sessionId,
               destinationName: item.name,
               destinationLat: item.lat,
               destinationLon: item.lon,

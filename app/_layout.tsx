@@ -5,7 +5,7 @@ import { View } from 'react-native';
 
 export default function Layout() {
   const [fontsLoaded] = useFonts({
-    Pretendard: require('../assets/fonts/Pretendard-Regular.ttf'),
+    Pretendard: require('../assets/fonts/Pretendard-Regular.otf'),
     PretendardBold: require('../assets/fonts/Pretendard-Bold.ttf'),
   });
 
