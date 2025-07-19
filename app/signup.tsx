@@ -1,12 +1,18 @@
 // app/signup.tsx
 
 import { router } from 'expo-router';
-import SignUpScreen, { FormState } from '../screens/signup'; // ✅ FormState 함께 import
+import SignUpScreen, { FormState } from '../screens/signup';
+import { useSessionStore } from '../contexts/sessionStore'; // ✅ 추가
 
 export default function SignUpPage() {
-  const handleSubmit = (data: FormState) => {
+  const handleSubmit = async (data: FormState) => {
     console.log('회원가입 완료:', data);
-    router.replace('/(tabs)'); // 원하는 라우팅으로 이동
+
+    // ✅ sessionId를 예시로 생성 (실제 서버 응답값을 기반으로 대체해야 함)
+    const sessionId = `user-${Date.now()}`;
+    await useSessionStore.getState().setSession(sessionId, 'signed');
+
+    router.replace('/(tabs)');
   };
 
   return <SignUpScreen onSubmit={handleSubmit} />;
