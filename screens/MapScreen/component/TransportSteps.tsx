@@ -1,14 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Dimensions } from 'react-native';
 import StepCard from './StepCard';
 import { useLocation } from '../../../contexts/LocationContext';
 import { fetchBusArrivalTime } from '../service/transportTime/fetchBusArrivalTime';
 import { fetchSubwayArrivalTime } from '../service/transportTime/fetchSubwayArrivalTime';
-import { Dimensions } from 'react-native';
 const windowWidth = Dimensions.get('window').width;
 import * as Speech from 'expo-speech';
 import { StepModel } from '../model/StepModel';
-
 
 export default function TransportSteps({ routeData }: { routeData: any }) {
   const { currentLegIndex } = useLocation();
@@ -17,7 +15,6 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
   const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const validLegIndex = currentLegIndex < 0 ? 0 : currentLegIndex;
   const scrollRef = useRef<ScrollView>(null);
-
 
   const [localRouteData, setLocalRouteData] = useState(routeData);
 
@@ -40,7 +37,6 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
     }
   }
 
-  // 🧠 외부에서 routeData 변경되면 반영
   useEffect(() => {
     console.log('🔁 props.routeData 변경 감지됨 → localRouteData 업데이트');
     setLocalRouteData(routeData);
@@ -58,7 +54,6 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
     const mainSteps = localRouteData.guides.map((guide, index) => {
       const { transportType, time, routeName, busNumber, guidance, startLocation } = guide;
 
-
       console.log(`🔎 Guide#${index} transportType=${transportType}, start=${startLocation?.name}, route=${routeName}`);
 
       let type: 'walk' | 'bus' | 'subway' = 'walk';
@@ -66,7 +61,6 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
       else if (transportType === 'SUBWAY') type = 'subway';
 
       const exitName = extractExitName(guidance, type);
-
       const timeText = time ? `${Math.ceil(time / 60)}분` : '정보 없음';
       const route = busNumber || routeName || '';
 
@@ -83,8 +77,6 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
         exitName,
       };
     });
-
-
 
     setStableSteps(mainSteps);
     fetchLiveInfos(mainSteps, '🔄 localRouteData or legIndex 변경');
@@ -175,17 +167,17 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
         {stableSteps.map((step, index) => (
           <View key={`step-${step.originalIndex || index}`} style={transportStepsStyles.cardWrapper}>
             <StepCard
-  type={step.type}
-  instruction={step.instruction}
-  highlighted={step.highlighted}
-  route={step.route}
-  emoji={step.emoji}
-  fullGuidance={step.fullGuidance}
-  liveInfo={liveInfoMap[step.originalIndex]}
-  exitName={step.exitName}
-  startLocation={step.startLocation}         // ✅ 추가
-  routeName={step.routeName}                 // ✅ 추가
-/>
+              type={step.type}
+              instruction={step.instruction}
+              highlighted={step.highlighted}
+              route={step.route}
+              emoji={step.emoji}
+              fullGuidance={step.fullGuidance}
+              liveInfo={liveInfoMap[step.originalIndex]}
+              exitName={step.exitName}
+              startLocation={step.startLocation}         // ✅ 추가
+              routeName={step.routeName}                 // ✅ 추가
+            />
 
           </View>
         ))}

@@ -24,13 +24,54 @@ const handleApiResponse = async (response) => {
   return data;
 };
 
-// TODO : 형님이 하셔야 할 거
-// 1. 회원가입 처리하는 함수
-// 2. 로그인 처리하는 함수
-// 3. 회원 탈퇴 처리하는 함수
-// 4. 회원 조회 함수 -> 이거는 백이 구현 안 할 수도 있어서 물어볼게여
+// ✅ 1. 사용자 인증 서비스
+export const authService = {
+  signup: async (email, password, nickname) => {
+    const url = `${BASE_URL}/api/auth/signup`;
+    debugLog('SIGNUP_REQUEST', '📬 회원가입 요청', { email, password, nickname });
 
-// POI 검색 서비스
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password, nickname }),
+    });
+
+    return await handleApiResponse(response);
+  },
+
+  login: async (email, password) => {
+    const url = `${BASE_URL}/api/auth/login`;
+    debugLog('LOGIN_REQUEST', '🔐 로그인 요청', { email, password });
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    return await handleApiResponse(response);
+  },
+
+  deleteAccount: async (userId, token) => {
+    const url = `${BASE_URL}/api/users/${userId}`;
+    debugLog('DELETE_REQUEST', '🗑️ 회원 탈퇴 요청', { userId });
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return await handleApiResponse(response);
+  },
+};
+
+// ✅ 2. POI 검색 서비스
 export const poiService = {
   searchPOI: async (keyword, latitude, longitude) => {
     try {
@@ -42,7 +83,7 @@ export const poiService = {
       const requestBody = {
         destination: keyword,
         currentLat: latitude,
-        currentLon: longitude
+        currentLon: longitude,
       };
 
       debugLog('POI_REQUEST_BODY', '📤 Request body', requestBody);
@@ -62,7 +103,6 @@ export const poiService = {
     } catch (error) {
       debugLog('POI_ERROR', '❌ POI search failed', { error: error.message });
 
-      // 🔁 샘플 데이터 fallback
       debugLog('POI_FALLBACK', '📦 샘플 데이터로 대체합니다');
 
       return {
@@ -70,22 +110,22 @@ export const poiService = {
           {
             name: '서울역(세종대로)',
             lat: 37.5665,
-            lon: 126.9780,
+            lon: 126.978,
             address: '서울특별시 종로구 세종대로',
           },
           {
             name: '서울역(자하문로)',
-            lat: 37.5700,
+            lat: 37.57,
             lon: 126.982,
             address: '서울특별시 종로구 자하문로',
           },
         ],
       };
     }
-  }
+  },
 };
 
-// GPT 질문 처리 서비스
+// ✅ 3. GPT 질의 처리 서비스
 export const gptService = {
   askQuestion: async (sessionId, text) => {
     const url = `${BASE_URL}/nlp/chat`;
@@ -101,23 +141,29 @@ export const gptService = {
     });
 
     const data = await handleApiResponse(response);
-
     const destination = data?.data?.destination;
 
     debugLog('GPT_RESULT', '🧠 목적지 추출 결과', { destination });
 
-    return destination; // 목적지 문자열만 반환
-  }
+    return destination;
+  },
 };
 
-
-// 디버깅 로그 출력용 (사용자 정의 함수)
+// ✅ 4. 경로 탐색 서비스
 const appendLog = (title, payload) => {
   console.log(`📝 [${title}]`, JSON.stringify(payload, null, 2));
 };
 
 export const routeService = {
-  searchRoute: async (sessionId, startLat, startLon, endLat, endLon, startName = '현재 위치', endName = '목적지') => {
+  searchRoute: async (
+    sessionId,
+    startLat,
+    startLon,
+    endLat,
+    endLon,
+    startName = '현재 위치',
+    endName = '목적지'
+  ) => {
     appendLog('ROUTE_SEARCH', '=== 경로 탐색 시작 ===');
     appendLog('ROUTE_PARAMS', {
       sessionId,
@@ -126,7 +172,7 @@ export const routeService = {
       endLat,
       endLon,
       startName,
-      endName
+      endName,
     });
 
     try {
@@ -138,23 +184,17 @@ export const routeService = {
       appendLog('ROUTE_REQUEST_URL', { url });
 
       const requestBody = {
-        sessionId: sessionId,
+        sessionId,
         startLat: parseFloat(startLat),
         startLon: parseFloat(startLon),
         endLat: parseFloat(endLat),
         endLon: parseFloat(endLon),
-        startName: startName,
-        endName: endName,
-        searchOption: "0"
+        startName,
+        endName,
+        searchOption: '0',
       };
 
       debugLog('ROUTE_REQUEST_BODY', 'Request body', requestBody);
-
-      debugLog('ROUTE_FETCH', '🚀 실제 fetch 호출 시작!', {
-        url,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
 
       const response = await fetch(url, {
         method: 'POST',
@@ -185,8 +225,10 @@ export const routeService = {
         stack: error.stack,
       });
 
-      if (error.message.includes('Network request failed') ||
-          error.message.includes('fetch')) {
+      if (
+        error.message.includes('Network request failed') ||
+        error.message.includes('fetch')
+      ) {
         appendLog('NETWORK_ERROR', '서버 연결 실패: 백엔드가 켜져 있는지 확인하세요.');
         throw new Error('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.');
       }
@@ -210,10 +252,9 @@ export const routeService = {
       const result = await handleApiResponse(response);
       appendLog('HEALTH_SUCCESS', result);
       return result;
-
     } catch (error) {
       appendLog('HEALTH_ERROR', { message: error.message });
       throw error;
     }
-  }
+  },
 };
