@@ -11,7 +11,6 @@ import { useLocation } from '../../../contexts/LocationContext';
 import { routeService } from '../../../services/api';
 import { useLocalSearchParams } from 'expo-router';
 
-
 export default function MapScreen() {
   const {
     sessionId,
@@ -48,6 +47,7 @@ export default function MapScreen() {
         Alert.alert('경로 탐색 실패', err.message || '문제가 발생했습니다.');
       }
     };
+
     if (startLat && startLon && destinationLat && destinationLon) {
       fetchInitialRoute();
     }
@@ -57,7 +57,6 @@ export default function MapScreen() {
   const firstBusGuide = guides.find((guide) => guide.transportType === 'BUS');
   const firstSubwayGuide = guides.find((guide) => guide.transportType === 'SUBWAY');
 
-  // 버스/지하철 도착 시간
   useEffect(() => {
     const fetchArrivalTimes = async () => {
       if (firstBusGuide?.startLocation?.name && firstBusGuide?.busNumber) {
@@ -72,7 +71,6 @@ export default function MapScreen() {
     fetchArrivalTimes();
   }, [firstBusGuide, firstSubwayGuide]);
 
-  // ETA 계산
   useEffect(() => {
     if (!routeData) return;
 
@@ -86,7 +84,6 @@ export default function MapScreen() {
     setEta(`${hours}:${minutes}`);
   }, [busMin, subwayMin, routeData]);
 
-  // 경로 이탈 감지 콜백
   const handleRouteOff = () => {
     if (!answered) {
       console.log('🚨 [MapScreen] 경로 이탈 콜백 수신됨');
@@ -94,17 +91,17 @@ export default function MapScreen() {
     }
   };
 
-  // ✅ 예 클릭 시 새로운 경로 재요청
   const handleYes = async () => {
     console.log('✅ 예 클릭 → 새 경로로 갱신');
     try {
       const newRoute = await routeService.searchRoute(
+        sessionId,
         location.latitude,
         location.longitude,
-        37.5715, // 목적지 위도
-        126.9769, // 목적지 경도
+        parseFloat(destinationLat as string),
+        parseFloat(destinationLon as string),
         '현재 위치',
-        '광화문역'
+        destinationName as string
       );
       const firstGuide = newRoute.guides?.[0];
       if (firstGuide?.lineString) {

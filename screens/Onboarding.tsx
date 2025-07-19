@@ -1,3 +1,5 @@
+// app/onboarding.tsx
+
 import React, { useRef, useState } from 'react';
 import {
   View,
@@ -10,6 +12,8 @@ import {
   ViewToken,
 } from 'react-native';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSessionStore } from '../contexts/sessionStore';
 
 const { width } = Dimensions.get('window');
 
@@ -49,16 +53,24 @@ export default function OnboardingScreen() {
     </View>
   );
 
+  const handleGuest = async () => {
+    const random = Math.floor(100 + Math.random() * 900);
+    const guestSessionId = `guest${random}`;
+    console.log('🚀 게스트 진입 → 세션ID:', guestSessionId);
 
-// TODO: 형님이 하실 거 - sessionId="guest{랜덤값}" 부여 , 화면 이동시 파라미터로  {sessionId = “guest{랜덤값}”,  userstate = “guest”} (랜덤값: 3자리?) 넘기기
-const handleGuest = () => {
-  router.replace('/(tabs)');
-};
+    await useSessionStore.getState().setSession(guestSessionId, 'guest');
+    router.replace('/(tabs)');
+  };
 
-const handleSignup = async () => {
-  await AsyncStorage.setItem('onboardingSeen', 'true'); // ✅ 회원가입자는 온보딩 봤음
-  router.push('/signup');
-};
+  const handleSignup = async () => {
+    await AsyncStorage.setItem('onboardingSeen', 'true');
+    router.push('/signup');
+  };
+
+  const handleLogin = async () => {
+    await AsyncStorage.setItem('onboardingSeen', 'true');
+    router.push('/login');
+  };
 
   return (
     <View style={styles.container}>
@@ -87,10 +99,16 @@ const handleSignup = async () => {
           <Text style={styles.buttonText}>게스트</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
-          <Text style={styles.buttonText}>회원가입</Text>
+        {/* 👉 로그인 버튼으로 변경 */}
+        <TouchableOpacity style={styles.signupButton} onPress={handleLogin}>
+          <Text style={styles.buttonText}>로그인</Text>
         </TouchableOpacity>
       </View>
+
+      {/* 👉 회원가입으로 안내하는 문구 */}
+      <TouchableOpacity style={styles.loginButton} onPress={handleSignup}>
+        <Text style={styles.loginText}>계정이 없으신가요? 회원가입</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -115,7 +133,7 @@ const styles = StyleSheet.create({
     color: '#333',
     lineHeight: 24,
     marginBottom: 24,
-    fontFamily: 'Pretendard', // ✅ 폰트 적용
+    fontFamily: 'Pretendard',
   },
   pagination: {
     flexDirection: 'row',
@@ -141,7 +159,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
     gap: 12,
-    marginBottom: 40,
+    marginBottom: 20,
   },
   guestButton: {
     flex: 1,
@@ -173,10 +191,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'PretendardBold', // ✅ 폰트 적용
+    fontFamily: 'PretendardBold',
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
   },
+  loginButton: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  loginText: {
+    fontSize: 14,
+    color: '#555',
+    textDecorationLine: 'underline',
+    fontFamily: 'Pretendard',
+  },
 });
-

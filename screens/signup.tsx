@@ -1,5 +1,3 @@
-// screens/signup.tsx
-
 import React, { useState } from 'react';
 import {
   View,
@@ -8,21 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRouter } from 'expo-router';
 
-// ✅ 타입 정의
-type RootStackParamList = {
-  Onboarding: undefined;
-  Signup: undefined;
-  Home: undefined;
-};
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Signup'>;
-
-// ✅ export 해줘야 다른 곳에서 쓸 수 있음!
 export type FormState = {
   name: string;
   username: string;
@@ -30,11 +18,9 @@ export type FormState = {
   confirmPassword: string;
 };
 
-type Props = {
-  onSubmit?: (form: FormState) => void;
-};
+const API_BASE_URL = 'http://49.50.131.200:8080';
 
-export default function SignUpScreen({ onSubmit }: Props) {
+export default function SignUpScreen() {
   const [form, setForm] = useState<FormState>({
     name: '',
     username: '',
@@ -42,27 +28,62 @@ export default function SignUpScreen({ onSubmit }: Props) {
     confirmPassword: '',
   });
 
-  const navigation = useNavigation<NavigationProp>();
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleChange = (field: keyof FormState, value: string) => {
     setForm({ ...form, [field]: value });
   };
 
-// TODO : 형님이 하실 거 - api.js 에서 회원가입 함수 연결 -> 백에서 sessionId 받아와서 /(tabs)로 화면 넘길 때  {sessionId = {백에서 받은 sessionId},  userstate = “signed”} 파라미터 같이 넘기기
-  const handlePress = () => {
+  const handlePress = async () => {
     const { name, username, password, confirmPassword } = form;
+
     if (!name || !username || !password || !confirmPassword) {
       Alert.alert('모든 항목을 입력해주세요.');
       return;
     }
+
     if (password !== confirmPassword) {
       Alert.alert('비밀번호가 일치하지 않습니다.');
       return;
     }
 
-    onSubmit?.(form);
+    setLoading(true);
 
-    navigation.replace('/(tabs)');
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, username, password }),
+      });
+
+      const result = await response.json();
+
+      console.log('📦 응답 데이터:', result);
+
+      if (!response.ok) {
+        throw new Error(result.message || '회원가입 실패');
+      }
+
+      const { sessionId } = result;
+
+      Alert.alert('회원가입 완료', '이제 서비스를 이용하실 수 있습니다.');
+
+      router.replace({
+        pathname: '/(tabs)',
+        params: {
+          sessionId,
+          userState: 'signed',
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ 회원가입 에러:', error);
+      Alert.alert('회원가입 실패', error.message || '네트워크 오류');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isPasswordMatch =
@@ -138,14 +159,17 @@ export default function SignUpScreen({ onSubmit }: Props) {
       </View>
 
       {/* 버튼 */}
-      <TouchableOpacity style={styles.button} onPress={handlePress}>
-        <Text style={styles.buttonText}>시작하기</Text>
+      <TouchableOpacity style={styles.button} onPress={handlePress} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>시작하기</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
 }
 
-// 스타일
 const styles = StyleSheet.create({
   container: {
     flex: 1,
