@@ -933,6 +933,26 @@
     node-forge "^1.2.1"
     nullthrows "^1.1.1"
 
+"@expo/config-plugins@^10.1.2":
+  version "10.1.2"
+  resolved "https://registry.npmjs.org/@expo/config-plugins/-/config-plugins-10.1.2.tgz"
+  integrity sha512-IMYCxBOcnuFStuK0Ay+FzEIBKrwW8OVUMc65+v0+i7YFIIe8aL342l7T4F8lR4oCfhXn7d6M5QPgXvjtc/gAcw==
+  dependencies:
+    "@expo/config-types" "^53.0.5"
+    "@expo/json-file" "~9.1.5"
+    "@expo/plist" "^0.3.5"
+    "@expo/sdk-runtime-versions" "^1.0.0"
+    chalk "^4.1.2"
+    debug "^4.3.5"
+    getenv "^2.0.0"
+    glob "^10.4.2"
+    resolve-from "^5.0.0"
+    semver "^7.5.4"
+    slash "^3.0.0"
+    slugify "^1.6.6"
+    xcode "^3.0.1"
+    xml2js "0.6.0"
+
 "@expo/config-plugins@^2.0.0":
   version "2.0.4"
   resolved "https://registry.npmjs.org/@expo/config-plugins/-/config-plugins-2.0.4.tgz"
@@ -1002,10 +1022,10 @@
   resolved "https://registry.npmjs.org/@expo/config-types/-/config-types-47.0.0.tgz"
   integrity sha512-r0pWfuhkv7KIcXMUiNACJmJKKwlTBGMw9VZHNdppS8/0Nve8HZMTkNRFQzTHW1uH3pBj8jEXpyw/2vSWDHex9g==
 
-"@expo/config-types@^53.0.3", "@expo/config-types@^53.0.4":
-  version "53.0.4"
-  resolved "https://registry.npmjs.org/@expo/config-types/-/config-types-53.0.4.tgz"
-  integrity sha512-0s+9vFx83WIToEr0Iwy4CcmiUXa5BgwBmEjylBB2eojX5XAMm9mJvw9KpjAb8m7zq2G0Q6bRbeufkzgbipuNQg==
+"@expo/config-types@^53.0.3", "@expo/config-types@^53.0.4", "@expo/config-types@^53.0.5":
+  version "53.0.5"
+  resolved "https://registry.npmjs.org/@expo/config-types/-/config-types-53.0.5.tgz"
+  integrity sha512-kqZ0w44E+HEGBjy+Lpyn0BVL5UANg/tmNixxaRMLS6nf37YsDrLk2VMAmeKMMk5CKG0NmOdVv3ngeUjRQMsy9g==
 
 "@expo/config@~11.0.10", "@expo/config@~11.0.9":
   version "11.0.10"
@@ -1126,10 +1146,10 @@
     semver "7.3.2"
     tempy "0.3.0"
 
-"@expo/json-file@^9.1.4", "@expo/json-file@~9.1.4":
-  version "9.1.4"
-  resolved "https://registry.npmjs.org/@expo/json-file/-/json-file-9.1.4.tgz"
-  integrity sha512-7Bv86X27fPERGhw8aJEZvRcH9sk+9BenDnEmrI3ZpywKodYSBgc8lX9Y32faNVQ/p0YbDK9zdJ0BfAKNAOyi0A==
+"@expo/json-file@^9.1.4", "@expo/json-file@~9.1.4", "@expo/json-file@~9.1.5":
+  version "9.1.5"
+  resolved "https://registry.npmjs.org/@expo/json-file/-/json-file-9.1.5.tgz"
+  integrity sha512-prWBhLUlmcQtvN6Y7BpW2k9zXGd3ySa3R6rAguMJkp1z22nunLN64KYTUWfijFlprFoxm9r2VNnGkcbndAlgKA==
   dependencies:
     "@babel/code-frame" "~7.10.4"
     json5 "^2.2.3"
@@ -1203,10 +1223,10 @@
     ora "^3.4.0"
     resolve-workspace-root "^2.0.0"
 
-"@expo/plist@^0.3.4":
-  version "0.3.4"
-  resolved "https://registry.npmjs.org/@expo/plist/-/plist-0.3.4.tgz"
-  integrity sha512-MhBLaUJNe9FQDDU2xhSNS4SAolr6K2wuyi4+A79vYuXLkAoICsbTwcGEQJN5jPY6D9izO/jsXh5k0h+mIWQMdw==
+"@expo/plist@^0.3.4", "@expo/plist@^0.3.5":
+  version "0.3.5"
+  resolved "https://registry.npmjs.org/@expo/plist/-/plist-0.3.5.tgz"
+  integrity sha512-9RYVU1iGyCJ7vWfg3e7c/NVyMFs8wbl+dMWZphtFtsqyN9zppGREU3ctlD3i8KUE0sCUTVnLjCWr+VeUIDep2g==
   dependencies:
     "@xmldom/xmldom" "^0.8.8"
     base64-js "^1.2.3"
@@ -3456,7 +3476,7 @@ emoji-regex@^9.2.2:
   resolved "https://registry.npmjs.org/emoji-regex/-/emoji-regex-9.2.2.tgz"
   integrity sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==
 
-encodeurl@^2.0.0:
+encodeurl@^2.0.0, encodeurl@~2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz"
   integrity sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==
@@ -3465,11 +3485,6 @@ encodeurl@~1.0.2:
   version "1.0.2"
   resolved "https://registry.npmjs.org/encodeurl/-/encodeurl-1.0.2.tgz"
   integrity sha512-TPJXq8JqFaVYm2CWmPvnP2Iyo4ZSM7/QKcSmuMLDObfpH5fi7RUGmd/rTDf+rut/saiDiQEeVTNgAmJEdAOx0w==
-
-encodeurl@~2.0.0:
-  version "2.0.0"
-  resolved "https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz"
-  integrity sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==
 
 env-editor@^0.4.1:
   version "0.4.2"
@@ -3929,7 +3944,7 @@ expo-file-system@~18.1.10:
   resolved "https://registry.npmjs.org/expo-file-system/-/expo-file-system-18.1.10.tgz"
   integrity sha512-SyaWg+HitScLuyEeSG9gMSDT0hIxbM9jiZjSBP9l9zMnwZjmQwsusE6+7qGiddxJzdOhTP4YGUfvEzeeS0YL3Q==
 
-expo-font@*, expo-font@~13.3.1, expo-font@~13.3.2:
+expo-font@*, expo-font@^13.3.2, expo-font@~13.3.1:
   version "13.3.2"
   resolved "https://registry.npmjs.org/expo-font/-/expo-font-13.3.2.tgz"
   integrity sha512-wUlMdpqURmQ/CNKK/+BIHkDA5nGjMqNlYmW0pJFXY/KE/OG80Qcavdu2sHsL4efAIiNGvYdBS10WztuQYU4X0A==
