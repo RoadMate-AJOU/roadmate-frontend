@@ -2,10 +2,10 @@
 import { useState, useRef } from 'react';
 import * as Speech from 'expo-speech';
 import { router, useRouter } from 'expo-router';
-// import {
-//   ExpoSpeechRecognitionModule,
-//   useSpeechRecognitionEvent,
-// } from 'expo-speech-recognition';
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from 'expo-speech-recognition';
 import { setVoiceOwner, getVoiceOwner, clearVoiceOwner } from '@/hooks/VoiceOwner';
 import { gptService } from '@/services/api';
 import { useSessionStore } from '@/contexts/sessionStore';
@@ -143,64 +143,64 @@ export function useVoiceViewModel() {
     }
   };
 
-  // useSpeechRecognitionEvent('result', (event) => {
-  //   const finalText = event.results?.[0]?.transcript;
-  //   if (finalText) {
-  //     recognizedTextRef.current = finalText;
-  //     console.log('✅ 최종 인식:', finalText);
-  //   }
-  // });
+  useSpeechRecognitionEvent('result', (event) => {
+    const finalText = event.results?.[0]?.transcript;
+    if (finalText) {
+      recognizedTextRef.current = finalText;
+      console.log('✅ 최종 인식:', finalText);
+    }
+  });
 
-  // useSpeechRecognitionEvent('end', () => {
-  // if (getVoiceOwner() !== 'mic') return;
-  // setIsListening(false);
-  // clearVoiceOwner();
+  useSpeechRecognitionEvent('end', () => {
+  if (getVoiceOwner() !== 'mic') return;
+  setIsListening(false);
+  clearVoiceOwner();
 
-//   const finalText = recognizedTextRef.current;
-//   if (finalText) {
-//     console.log('🧠 인식된 텍스트:', finalText);
+  const finalText = recognizedTextRef.current;
+  if (finalText) {
+    console.log('🧠 인식된 텍스트:', finalText);
 
-//     // ✅ 백엔드로 보낸 여부 추적
-//     let hasSentToBackend = false;
+    // ✅ 백엔드로 보낸 여부 추적
+    let hasSentToBackend = false;
 
-//     // ✅ 인식된 음성을 먼저 TTS로 읽기
-//     Speech.speak(finalText, {
-//       language: 'ko-KR',
-//       onDone: () => {
-//         if (!hasSentToBackend) {
-//           console.log('✅ TTS 완료, 백엔드 전송 시작');
-//           hasSentToBackend = true;
-//           sendToBackend(finalText); // ✅ 읽은 후 백엔드 전송
-//         }
-//       },
-//       onError: (err) => {
-//         console.error('❌ TTS 오류:', err);
-//         setIsSpeaking(false);
-//       },
-//     });
+    // ✅ 인식된 음성을 먼저 TTS로 읽기
+    Speech.speak(finalText, {
+      language: 'ko-KR',
+      onDone: () => {
+        if (!hasSentToBackend) {
+          console.log('✅ TTS 완료, 백엔드 전송 시작');
+          hasSentToBackend = true;
+          sendToBackend(finalText); // ✅ 읽은 후 백엔드 전송
+        }
+      },
+      onError: (err) => {
+        console.error('❌ TTS 오류:', err);
+        setIsSpeaking(false);
+      },
+    });
 
-//     // ✅ Fallback: onDone이 불리지 않을 경우에도 실행되도록
-//     setTimeout(() => {
-//       if (!hasSentToBackend) {
-//         console.warn('⏱️ TTS onDone 누락 → fallback으로 백엔드 전송');
-//         hasSentToBackend = true;
-//         sendToBackend(finalText);
-//       }
-//     }, 4000); // 3초보다 약간 여유 있게
-//   } else {
-//     console.log('⚠️ 음성이 인식되지 않았습니다');
-//     setIsSpeaking(false);
-//   }
-// });
-
-
+    // ✅ Fallback: onDone이 불리지 않을 경우에도 실행되도록
+    setTimeout(() => {
+      if (!hasSentToBackend) {
+        console.warn('⏱️ TTS onDone 누락 → fallback으로 백엔드 전송');
+        hasSentToBackend = true;
+        sendToBackend(finalText);
+      }
+    }, 4000); // 3초보다 약간 여유 있게
+  } else {
+    console.log('⚠️ 음성이 인식되지 않았습니다');
+    setIsSpeaking(false);
+  }
+});
 
 
-  // useSpeechRecognitionEvent('error', (event) => {
-  //   console.error('❌ 음성 인식 에러:', event.error);
-  //   setIsListening(false);
-  //   setIsSpeaking(false);
-  // });
+
+
+  useSpeechRecognitionEvent('error', (event) => {
+    console.error('❌ 음성 인식 에러:', event.error);
+    setIsListening(false);
+    setIsSpeaking(false);
+  });
 
   return {
     isSpeaking,
