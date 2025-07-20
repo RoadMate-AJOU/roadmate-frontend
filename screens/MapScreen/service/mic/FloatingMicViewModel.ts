@@ -13,7 +13,7 @@ import { useRoute } from '../../model/RouteContext';
 import { fetchBusArrivalTime } from '../transportTime/fetchBusArrivalTime';
 import { fetchSubwayArrivalTime } from '../transportTime/fetchSubwayArrivalTime';
 
-const ENABLE_VOICE = false;
+const ENABLE_VOICE = true;
 
 export function useVoiceViewModel() {
   const [isSpeaking, setIsSpeaking] = useState(false);
