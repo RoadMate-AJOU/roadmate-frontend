@@ -1,5 +1,6 @@
 const BASE_URL = 'http://10.0.2.2:8080';
 import { useSessionStore } from '@/contexts/sessionStore';
+const { sessionId, userState } = useSessionStore.getState(); 
 
 // 디버깅을 위한 로그 함수
 const debugLog = (tag, message, data = null) => {
@@ -205,7 +206,6 @@ export const routeService = {
       appendLog('ROUTE_REQUEST_URL', { url });
 
       const requestBody = {
-        sessionId,
         startLat: parseFloat(startLat),
         startLon: parseFloat(startLon),
         endLat: parseFloat(endLat),

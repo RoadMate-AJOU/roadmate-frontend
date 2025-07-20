@@ -83,7 +83,6 @@ export function useDestinationListViewModel(router: Router, params: UnknownOutpu
 
         try {
             await routeService.searchRoute(
-                sessionId,
                 currentLocation.latitude,
                 currentLocation.longitude,
                 item.lat,
