@@ -107,7 +107,6 @@ export function useDestinationListViewModel(router: Router, params: UnknownOutpu
                     router.push({
                         pathname: '/map',
                         params: {
-                            sessionId,
                             destinationName: item.name,
                             destinationLat: item.lat,
                             destinationLon: item.lon,

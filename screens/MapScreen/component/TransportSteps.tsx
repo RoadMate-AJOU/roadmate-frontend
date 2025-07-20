@@ -7,14 +7,16 @@ import { fetchSubwayArrivalTime } from '../service/transportTime/fetchSubwayArri
 const windowWidth = Dimensions.get('window').width;
 import * as Speech from 'expo-speech';
 import { StepModel } from '../model/StepModel';
+import { useRoute } from '../model/RouteContext';
 
-export default function TransportSteps({ routeData }: { routeData: any }) {
+export default function TransportSteps() {
   const { currentLegIndex } = useLocation();
   const [stableSteps, setStableSteps] = useState<StepModel[]>([]);
   const [liveInfoMap, setLiveInfoMap] = useState<Record<number, string>>({});
   const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const validLegIndex = currentLegIndex < 0 ? 0 : currentLegIndex;
   const scrollRef = useRef<ScrollView>(null);
+  const { routeData } = useRoute();
 
   const [localRouteData, setLocalRouteData] = useState(routeData);
 
@@ -29,10 +31,15 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
 
     if (step.type === 'walk') {
       Speech.speak(`${step.fullGuidance} 남았습니다`);
-    } else {
+    } else if(step.type === 'bus') {
       const exit = extractExitName(step.fullGuidance, step.type);
       if (exit) {
         Speech.speak(`${exit}에서 하차하세요`);
+      }
+    }else {
+      const exit = extractExitName(step.fullGuidance, step.type);
+      if (exit) {
+        Speech.speak(`${exit}역에서 하차하세요`);
       }
     }
   }
@@ -52,7 +59,7 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
     console.log('📦 guides.length:', localRouteData.guides.length);
 
     const mainSteps = localRouteData.guides.map((guide, index) => {
-      const { transportType, time, routeName, busNumber, guidance, startLocation } = guide;
+      const { transportType, time, routeName, busNumber, guidance, startLocation, stationAccessibility } = guide;
 
       console.log(`🔎 Guide#${index} transportType=${transportType}, start=${startLocation?.name}, route=${routeName}`);
 
@@ -74,7 +81,8 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
         originalIndex: index,
         startLocation: startLocation?.name,
         routeName: route,
-        exitName,
+        exitName: extractExitName(guidance, type),
+  stationAccessibility: guide.stationAccessibility,
       };
     });
 
@@ -103,6 +111,7 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
     }, 30 * 1000);
 
     return () => {
+      Speech.stop();
       if (fetchIntervalRef.current) {
         clearInterval(fetchIntervalRef.current);
         console.log('🧹 [CLEANUP] 실시간 갱신 인터벌 해제');
@@ -120,14 +129,14 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
           const routeName = step.routeName.replace(/^노선:/, '');
           const result = await fetchBusArrivalTime(step.startLocation, routeName);
           if (result === '운행종료') {
-            newLiveInfoMap[step.originalIndex] = `🚌 ${step.routeName}, 운행종료`;
+            newLiveInfoMap[step.originalIndex] = `운행종료`;
           } else if (typeof result === 'number') {
-            newLiveInfoMap[step.originalIndex] = `🚌 ${step.routeName}, ${result === 0 ? '곧 도착' : `${result}분 후 도착`}`;
+            newLiveInfoMap[step.originalIndex] = `${result === 0 ? '곧 도착' : `${result}분 후 도착`}`;
           }
         } else if (step.type === 'subway' && step.startLocation) {
           const minutes = await fetchSubwayArrivalTime(step.startLocation);
           if (minutes !== null) {
-            newLiveInfoMap[step.originalIndex] = `🚇 ${step.startLocation}, ${minutes === 0 ? '곧 도착' : `${minutes}분 후 도착`}`;
+            newLiveInfoMap[step.originalIndex] = `${minutes === 0 ? '곧 도착' : `${minutes}분 후 도착`}`;
           }
         }
       })
@@ -177,6 +186,7 @@ export default function TransportSteps({ routeData }: { routeData: any }) {
               exitName={step.exitName}
               startLocation={step.startLocation}         // ✅ 추가
               routeName={step.routeName}                 // ✅ 추가
+              stationAccessibility={step.stationAccessibility}
             />
 
           </View>

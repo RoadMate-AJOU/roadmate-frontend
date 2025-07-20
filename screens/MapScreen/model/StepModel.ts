@@ -11,4 +11,9 @@ export interface StepModel {
     startLocation?: string;         // 출발 정류장 이름
     routeName?: string;             // 버스/지하철 노선 이름
     exitName?: string | null;       // 하차 정류장 이름 (있을 경우)
+    stationAccessibility?: {
+  elevatorExits?: string;
+  escalatorExits?: string;
+};
+
 }

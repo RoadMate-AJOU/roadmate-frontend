@@ -8,6 +8,7 @@ import {
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useLocation } from '../../../contexts/LocationContext';
+import * as Speech from 'expo-speech';
 
 const screenHeight = Dimensions.get('window').height;
 
@@ -29,6 +30,33 @@ export default function MapDisplay({ routeData, onOffRouteDetected, isRoutingAct
       return { latitude: lat, longitude: lon };
     });
   };
+  
+  function isOffRoute(currentLocation, routeCoords, thresholdMeters = 40): boolean {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+
+  function getDistanceMeters(a, b) {
+    const R = 6371000;
+    const dLat = toRad(b.latitude - a.latitude);
+    const dLon = toRad(b.longitude - a.longitude);
+    const lat1 = toRad(a.latitude);
+    const lat2 = toRad(b.latitude);
+
+    const aVal =
+      Math.sin(dLat / 2) ** 2 +
+      Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+    const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
+    return R * c;
+  }
+
+  const minDistance = Math.min(
+    ...routeCoords.map((coord) => getDistanceMeters(currentLocation, coord))
+  );
+
+  console.log('📏 현재 위치와 경로까지 최단 거리:', minDistance.toFixed(2), 'm');
+
+  return minDistance > thresholdMeters;
+}
+
 
   useEffect(() => {
     console.log('🧭 [MapDisplay] routeData 변경됨');
@@ -87,29 +115,34 @@ export default function MapDisplay({ routeData, onOffRouteDetected, isRoutingAct
     let i = 0;
     intervalRef.current = setInterval(() => {
       if (i >= routeCoords.length) {
-        console.log('✅ 마커가 경로 끝에 도달함');
-        clearInterval(intervalRef.current!);
-        return;
-      }
+  console.log('✅ 마커가 경로 끝에 도달함');
+  clearInterval(intervalRef.current!);
+
+  // 🗣 도착 후 피드백 요청 TTS
+  Speech.speak('목적지에 도착했습니다. 방금 경로 안내는 어땠나요? 피드백을 말해주세요.', {
+    language: 'ko-KR',
+    onDone: () => {
+      // 예: 마이크 자동 켜기 로직 (선택)
+      // setIsListening(true); // 만약 구현되어 있다면
+    },
+  });
+
+  return;
+}
+
 
       let point = routeCoords[i];
 
-      if (i === 14) {
-        point = {
-          latitude: point.latitude + 0.0003,
-          longitude: point.longitude + 0.0003,
-        };
-        console.log('🚨 경로 이탈 발생 → 이탈 위치:', point);
-        setLocation(point);
-        clearInterval(intervalRef.current!);
+      setLocation(point);
+console.log(`🟠 마커 이동 [${i}] →`, point);
 
-        setTimeout(() => {
-          console.log('📡 onOffRouteDetected() 호출');
-          onOffRouteDetected();
-        }, 2000);
-
-        return;
-      }
+// ✅ 이탈 여부 검사
+if (isOffRoute(point, routeCoords)) {
+  console.log('🚨 경로 이탈 감지됨! onOffRouteDetected 실행');
+  onOffRouteDetected();
+  clearInterval(intervalRef.current!);
+  return;
+}
 
       setLocation(point);
       console.log(`🟠 마커 이동 [${i}] →`, point);
@@ -126,7 +159,7 @@ export default function MapDisplay({ routeData, onOffRouteDetected, isRoutingAct
       }
 
       i++;
-    }, 1000); // 🔁 기존 500ms → 1000ms로 유지
+    }, 2000); // 🔁 기존 500ms → 1000ms로 유지
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);

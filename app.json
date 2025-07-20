@@ -28,8 +28,7 @@
         {
           "image": "./assets/images/roadmate_logo.png",
           "imageWidth": 400,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "resizeMode": "contain"
         }
       ],
       [
@@ -51,7 +50,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "162cfb5f-e783-4e17-b121-8a2d53c1aa1c"
+        "projectId": "d137cef4-7795-49d6-90bb-a9f15e39f296"
       }
     },
     "android": {
@@ -69,6 +68,6 @@
         }
       }
     },
-    "owner": "asdfasdf3586"
+    "owner": "asdf123456789"
   }
 }

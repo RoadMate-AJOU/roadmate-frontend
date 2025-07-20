@@ -26,38 +26,40 @@ const handleApiResponse = async (response) => {
 
 // ✅ 1. 사용자 인증 서비스
 export const authService = {
-  signup: async (email, password, nickname) => {
-    const url = `${BASE_URL}/api/auth/signup`;
-    debugLog('SIGNUP_REQUEST', '📬 회원가입 요청', { email, password, nickname });
+  signup: async (username, password, name) => {
+    const url = `${BASE_URL}/users/signup`;
+    debugLog('SIGNUP_REQUEST', '📬 회원가입 요청', { username, password, name });
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password, nickname }),
+      body: JSON.stringify({ username, password, name }),
     });
 
     return await handleApiResponse(response);
   },
 
-  login: async (email, password) => {
-    const url = `${BASE_URL}/api/auth/login`;
-    debugLog('LOGIN_REQUEST', '🔐 로그인 요청', { email, password });
+  login: async (username, password) => {
+    const url = `${BASE_URL}/users/signin`;
+    debugLog('LOGIN_REQUEST', '🔐 로그인 요청', { username, password });
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     });
+
+    console.log(response.text());
 
     return await handleApiResponse(response);
   },
 
   deleteAccount: async (userId, token) => {
-    const url = `${BASE_URL}/api/users/${userId}`;
+    const url = `${BASE_URL}/users/${userId}`;
     debugLog('DELETE_REQUEST', '🗑️ 회원 탈퇴 요청', { userId });
 
     const response = await fetch(url, {
@@ -200,6 +202,7 @@ export const routeService = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Guest-Id': sessionId,
         },
         body: JSON.stringify(requestBody),
       });
