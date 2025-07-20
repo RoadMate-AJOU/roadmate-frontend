@@ -9,11 +9,18 @@ import {
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSessionStore } from '../contexts/sessionStore';
+
+type LoginResponse = {
+  id: string;
+  token: string;
+};
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
+  const { setSession } = useSessionStore();
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -22,7 +29,7 @@ export default function LoginScreen() {
     }
 
     try {
-      const response = await fetch('http://49.50.131.200:8080/api/user/login', {
+      const response = await fetch('http://49.50.131.200:8080/users/signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,17 +42,23 @@ export default function LoginScreen() {
         throw new Error(errText || '로그인 실패');
       }
 
-      const data = await response.json();
-      const sessionId = data.sessionId;
+      const result: LoginResponse = await response.json(); // ✅ JSON 응답 파싱
+      const sessionId = result.token;
+      const userId = result.id;
 
-      console.log('✅ 로그인 성공, 세션 ID:', sessionId);
+      console.log('✅ 로그인 성공:', sessionId);
+      console.log('✅ 사용자 ID:', userId);
 
-      // ✅ (tabs)로 이동하면서 sessionId와 userState 전달
+      // ✅ 세션 저장
+      await setSession(sessionId, 'signed');
+
+      // ✅ 메인 탭으로 이동
       router.replace({
         pathname: '/(tabs)',
         params: {
           sessionId,
-          userState: 'signed',
+          userId,
+          userstate: 'signed',
         },
       });
     } catch (err) {

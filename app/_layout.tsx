@@ -1,25 +1,22 @@
-import { Stack } from 'expo-router';
-import { LocationProvider } from '../contexts/LocationContext';
-import { useFonts } from 'expo-font';
-import { View } from 'react-native';
+// app/_layout.tsx
+import { Slot, useRouter, useSegments } from 'expo-router';
+import { useEffect } from 'react';
+import { useSessionStore } from '../contexts/sessionStore';
 
-export default function Layout() {
-  const [fontsLoaded] = useFonts({
-    Pretendard: require('../assets/fonts/Pretendard-Regular.otf'),
-    PretendardBold: require('../assets/fonts/Pretendard-Bold.ttf'),
-  });
+export default function RootLayout() {
+  const { sessionId, userState, loadSessionFromStorage } = useSessionStore();
+  const router = useRouter();
+  const segments = useSegments();
 
-  if (!fontsLoaded) {
-    return <View />; // 또는 로딩 스피너, splash 등
-  }
+  useEffect(() => {
+    loadSessionFromStorage().then(() => {
+      if (!sessionId || !userState) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/(tabs)');
+      }
+    });
+  }, []);
 
-  return (
-    <LocationProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
-      />
-    </LocationProvider>
-  );
+  return <Slot />;
 }

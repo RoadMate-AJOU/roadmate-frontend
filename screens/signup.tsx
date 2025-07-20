@@ -11,14 +11,14 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-export type FormState = {
+const API_BASE_URL = 'http://49.50.131.200:8080';
+
+type FormState = {
   name: string;
   username: string;
   password: string;
   confirmPassword: string;
 };
-
-const API_BASE_URL = 'http://49.50.131.200:8080';
 
 export default function SignUpScreen() {
   const [form, setForm] = useState<FormState>({
@@ -27,7 +27,6 @@ export default function SignUpScreen() {
     password: '',
     confirmPassword: '',
   });
-
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -49,32 +48,32 @@ export default function SignUpScreen() {
     }
 
     setLoading(true);
-
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+      const response = await fetch(`${API_BASE_URL}/users/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({ name, username, password }),
       });
 
       const result = await response.json();
-
       console.log('📦 응답 데이터:', result);
 
       if (!response.ok) {
         throw new Error(result.message || '회원가입 실패');
       }
 
-      const { sessionId } = result;
+      const { id, name: resultName } = result;
 
-      Alert.alert('회원가입 완료', '이제 서비스를 이용하실 수 있습니다.');
+      Alert.alert('회원가입 완료', `${resultName}님 환영합니다!`);
 
+      // ✅ 여기서 sessionId와 userState를 정확하게 넘김
       router.replace({
         pathname: '/(tabs)',
         params: {
-          sessionId,
+          sessionId: id.toString(),
           userState: 'signed',
         },
       });
@@ -92,9 +91,7 @@ export default function SignUpScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>회원가입</Text>
-      <Text style={styles.subtext}>
-        사용자 맞춤 기능을 시작하기 위해서 회원가입을 해야합니다.
-      </Text>
+      <Text style={styles.subtext}>사용자 맞춤 기능을 위해 가입이 필요합니다.</Text>
 
       {/* 이름 */}
       <Text style={styles.label}>이름</Text>
@@ -115,7 +112,7 @@ export default function SignUpScreen() {
         <FontAwesome name="user-o" size={20} color="#f45a00" style={styles.icon} />
         <TextInput
           style={styles.inputWithIcon}
-          placeholder="한국어, 영어 모두 가능"
+          placeholder="아이디 입력"
           value={form.username}
           onChangeText={(v) => handleChange('username', v)}
           placeholderTextColor="#ccc"
@@ -142,19 +139,14 @@ export default function SignUpScreen() {
         <FontAwesome name="lock" size={20} color="#f45a00" style={styles.icon} />
         <TextInput
           style={styles.inputWithIcon}
-          placeholder="비밀번호를 다시 입력해주세요."
+          placeholder="비밀번호 재입력"
           value={form.confirmPassword}
           onChangeText={(v) => handleChange('confirmPassword', v)}
           secureTextEntry
           placeholderTextColor="#ccc"
         />
         {isPasswordMatch && (
-          <FontAwesome
-            name="check"
-            size={18}
-            color="#f45a00"
-            style={styles.rightCheck}
-          />
+          <FontAwesome name="check" size={18} color="#f45a00" style={styles.rightCheck} />
         )}
       </View>
 
