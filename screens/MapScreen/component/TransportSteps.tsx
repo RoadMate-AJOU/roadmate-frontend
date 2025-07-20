@@ -98,7 +98,7 @@ export default function TransportSteps() {
     const highlightedIndex = mainSteps.findIndex(step => step.highlighted);
     if (highlightedIndex >= 0 && scrollRef.current) {
       // 카드 크기 + 마진 기준
-      const CARD_WIDTH = 200 + 12; // 카드 width + marginHorizontal (6 * 2)
+      const CARD_WIDTH = 160 + 12; // 카드 width + marginHorizontal (6 * 2)
       const screenCenterOffset = (CARD_WIDTH * highlightedIndex) - (windowWidth / 2 - CARD_WIDTH / 2);
 
       scrollRef.current.scrollTo({ x: screenCenterOffset, animated: true });

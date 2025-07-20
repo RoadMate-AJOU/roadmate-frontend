@@ -3,7 +3,7 @@ import { View, StyleSheet, Text, ScrollView, Modal, TouchableOpacity, Alert } fr
 import Header from '../component/Header';
 import MapDisplay from '../component/MapDisplay';
 import TransportSteps from '../component/TransportSteps';
-import MicButton from '../component/FloatingMicButton';
+import MicButton from '../service/mic/FloatingMicButton';
 import { fetchBusArrivalTime } from '../service/transportTime/fetchBusArrivalTime';
 import { fetchSubwayArrivalTime } from '../service/transportTime/fetchSubwayArrivalTime';
 import { useLocation } from '../../../contexts/LocationContext';
@@ -66,7 +66,7 @@ export default function MapScreen() {
         setBusMin(min);
       }
       if (firstSubwayGuide?.startLocation?.name) {
-        const min = await fetchSubwayArrivalTime(firstSubwayGuide.startLocation.name);
+        const min = await fetchSubwayArrivalTime(firstSubwayGuide.startLocation.name, firstSubwayGuide.routeName);
         setSubwayMin(min);
       }
     };

@@ -24,7 +24,6 @@ export default function Home() {
   const [recognizedText, setRecognizedText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const { location } = useLocation();
   const { sessionId } = useSessionStore();
 
   useEffect(() => {
