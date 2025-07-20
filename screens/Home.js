@@ -16,9 +16,9 @@ import { poiService, gptService } from '../services/api';
 import * as Speech from 'expo-speech';
 import { setVoiceOwner, getVoiceOwner, clearVoiceOwner } from '../hooks/VoiceOwner';
 import { useSessionStore } from '@/contexts/sessionStore';
-// import { useSpeechRecognitionEvent, ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
+import { useSpeechRecognitionEvent, ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
 
-const ENABLE_VOICE = false;
+const ENABLE_VOICE = true;
 
 export default function Home() {
   const [recognizedText, setRecognizedText] = useState('');
@@ -188,32 +188,32 @@ export default function Home() {
     } catch (e) { }
   };
 
-  //  useSpeechRecognitionEvent("result", (event) => {
-  //    if (!ENABLE_VOICE) return;
-  //    const transcript = event.results?.[0]?.transcript;
-  //    if (transcript) setRecognizedText(transcript);
-  //  });
+   useSpeechRecognitionEvent("result", (event) => {
+     if (!ENABLE_VOICE) return;
+     const transcript = event.results?.[0]?.transcript;
+     if (transcript) setRecognizedText(transcript);
+   });
   
-  //  useSpeechRecognitionEvent("partialresult", (event) => {
-  //    if (!ENABLE_VOICE) return;
-  //    const transcript = event.text;
-  //    if (transcript) setRecognizedText(transcript);
-  //  });
+   useSpeechRecognitionEvent("partialresult", (event) => {
+     if (!ENABLE_VOICE) return;
+     const transcript = event.text;
+     if (transcript) setRecognizedText(transcript);
+   });
   
-  //  useSpeechRecognitionEvent("end", () => {
-  //    if (!ENABLE_VOICE) return;
-  //    if (getVoiceOwner() !== 'home') return;
-  //    setIsListening(false);
-  //    clearVoiceOwner();
-  //    if (recognizedText.trim()) {
-  //      handleVoiceSearch(recognizedText);
-  //    }
-  //  });
+   useSpeechRecognitionEvent("end", () => {
+     if (!ENABLE_VOICE) return;
+     if (getVoiceOwner() !== 'home') return;
+     setIsListening(false);
+     clearVoiceOwner();
+     if (recognizedText.trim()) {
+       handleVoiceSearch(recognizedText);
+     }
+   });
   
-  //  useSpeechRecognitionEvent("error", () => {
-  //    if (!ENABLE_VOICE) return;
-  //    setIsListening(false);
-  //  });
+   useSpeechRecognitionEvent("error", () => {
+     if (!ENABLE_VOICE) return;
+     setIsListening(false);
+   });
 
 
   return (
