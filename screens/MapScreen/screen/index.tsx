@@ -67,7 +67,7 @@ export default function MapScreen() {
         setBusMin(min);
       }
       if (firstSubwayGuide?.startLocation?.name) {
-        const min = await fetchSubwayArrivalTime(firstSubwayGuide.startLocation.name);
+        const min = await fetchSubwayArrivalTime(firstSubwayGuide.startLocation.name, firstSubwayGuide.routeName);
         setSubwayMin(min);
       }
     };

@@ -27,29 +27,22 @@ export default function TransportSteps() {
   }
 
   function speakStep(step) {
-  if (!step) return;
+    if (!step) return;
 
-  // 🔒 마이크 사용 중이면 음성 안내 생략
-  if (getVoiceOwner() === 'mic') {
-    console.log('🔇 [TransportSteps] 음성 인식 중이라 안내 음성 생략');
-    return;
-  }
-
-  if (step.type === 'walk') {
-    Speech.speak(`${step.fullGuidance} 남았습니다`);
-  } else if (step.type === 'bus') {
-    const exit = extractExitName(step.fullGuidance, step.type);
-    if (exit) {
-      Speech.speak(`${exit}에서 하차하세요`);
-    }
-  } else {
-    const exit = extractExitName(step.fullGuidance, step.type);
-    if (exit) {
-      Speech.speak(`${exit}역에서 하차하세요`);
+    if (step.type === 'walk') {
+      Speech.speak(`${step.fullGuidance} 남았습니다`);
+    } else if(step.type === 'bus') {
+      const exit = extractExitName(step.fullGuidance, step.type);
+      if (exit) {
+        Speech.speak(`${exit}에서 하차하세요`);
+      }
+    }else {
+      const exit = extractExitName(step.fullGuidance, step.type);
+      if (exit) {
+        Speech.speak(`${exit}역에서 하차하세요`);
+      }
     }
   }
-}
-
 
   useEffect(() => {
     console.log('🔁 props.routeData 변경 감지됨 → localRouteData 업데이트');
@@ -105,7 +98,7 @@ export default function TransportSteps() {
     const highlightedIndex = mainSteps.findIndex(step => step.highlighted);
     if (highlightedIndex >= 0 && scrollRef.current) {
       // 카드 크기 + 마진 기준
-      const CARD_WIDTH = 200 + 12; // 카드 width + marginHorizontal (6 * 2)
+      const CARD_WIDTH = 160 + 12; // 카드 width + marginHorizontal (6 * 2)
       const screenCenterOffset = (CARD_WIDTH * highlightedIndex) - (windowWidth / 2 - CARD_WIDTH / 2);
 
       scrollRef.current.scrollTo({ x: screenCenterOffset, animated: true });

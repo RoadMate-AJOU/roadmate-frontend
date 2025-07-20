@@ -159,7 +159,7 @@ if (isOffRoute(point, routeCoords)) {
       }
 
       i++;
-    }, 1000); // 🔁 기존 500ms → 1000ms로 유지
+    }, 2000); // 🔁 기존 500ms → 1000ms로 유지
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);

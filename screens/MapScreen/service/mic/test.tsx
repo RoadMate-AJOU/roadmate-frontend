@@ -1,107 +1,23 @@
-import React, { useState } from 'react';
+import { useState, useRef } from 'react';
 import * as Speech from 'expo-speech';
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
-import { getVoiceOwner, setVoiceOwner, clearVoiceOwner } from '@/hooks/VoiceOwner';
-import { useSessionStore } from '@/contexts/sessionStore';
+import { useRouter } from 'expo-router';
+import { useSpeechRecognitionEvent, ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
+import { setVoiceOwner, getVoiceOwner, clearVoiceOwner } from '@/hooks/VoiceOwner';
 import { gptService } from '@/services/api';
+import { useSessionStore } from '@/contexts/sessionStore';
+import { useRoute } from '../../model/RouteContext';
 import { fetchBusArrivalTime } from '../transportTime/fetchBusArrivalTime';
 import { fetchSubwayArrivalTime } from '../transportTime/fetchSubwayArrivalTime';
-import { useRoute } from '../../model/RouteContext';
-import { router } from 'expo-router';
-import { Alert } from 'react-native';
-
 
 const ENABLE_VOICE = true;
 
 export function useVoiceViewModel() {
-  const [isListening, setIsListening] = useState(false);
-  const [recognizedText, setRecognizedText] = useState('');
-  const { sessionId } = useSessionStore();
   const [isSpeaking, setIsSpeaking] = useState(false);
-    const { routeData } = useRoute();
-
-    
-
-
-  const startRecognizing = async () => {
-    if (!ENABLE_VOICE) return;
-
-    try {
-      setVoiceOwner('mic');
-      setRecognizedText('');
-      await ExpoSpeechRecognitionModule.start({
-        lang: 'ko-KR',
-        continuous: true,
-        interimResults: true,
-      });
-      setIsListening(true);
-setIsSpeaking(true);
-    } catch (error) {
-      console.error('❌ 음성 인식 시작 오류:', error);
-    }
-  };
-
-  const stopRecognizing = async () => {
-    if (!ENABLE_VOICE) return;
-
-    try {
-      await ExpoSpeechRecognitionModule.stop();
-      setIsListening(false);
-    } catch (e) { }
-  };
-
-  useSpeechRecognitionEvent("result", (event) => {
-    const transcript = event.results?.[0]?.transcript;
-    if (transcript) setRecognizedText(transcript);
-  });
-
-  // 인식 종료되면 → GPT에 보내고 → 결과 읽어줌
-  // 🧠 음성 인식 종료 이벤트: GPT + 응답 TTS
-useSpeechRecognitionEvent("end", async () => {
-  if (getVoiceOwner() !== 'mic') return;
-
-  setIsListening(false);
-  clearVoiceOwner();
-
-  const finalText = recognizedText.trim();
-  if (!finalText) {
-    Alert.alert('알림', '음성이 인식되지 않았습니다.');
-    setIsSpeaking(false); // ⬅️ 종료
-    return;
-  }
-
-  // 🔊 사용자 말 다시 읽기 → 그 후 GPT 요청
-  try {
-    let gptTriggered = false;
-
-    Speech.speak(finalText, {
-      language: 'ko-KR',
-      onDone: () => {
-        if (!gptTriggered) {
-          gptTriggered = true;
-          sendToBackend(finalText); // → 내부에서 다시 speak + isSpeaking=false 처리됨
-        }
-      },
-      onError: () => {
-        console.error('❌ 음성 speak 오류');
-        setIsSpeaking(false);
-      },
-    });
-
-    // ⏱️ fallback 처리
-    setTimeout(() => {
-      if (!gptTriggered) {
-        console.warn('⏱️ onDone fallback으로 GPT 전송 실행');
-        sendToBackend(finalText);
-      }
-    }, 3000);
-  } catch (err) {
-    console.error('❌ GPT 처리 오류:', err);
-    Speech.speak('서버 응답 중 오류가 발생했습니다.', { language: 'ko-KR' });
-    setIsSpeaking(false);
-  }
-});
-
+  const [isListening, setIsListening] = useState(false);
+  const recognizedTextRef = useRef('');
+  const router = useRouter();
+  const { sessionId } = useSessionStore();
+  const { routeData } = useRoute();
 
   const sendToBackend = async (text: string) => {
     try {
@@ -194,9 +110,99 @@ useSpeechRecognitionEvent("end", async () => {
     }
   };
 
+  const handleMicPress = async () => {
+  if (!ENABLE_VOICE) {
+    console.warn('⚠️ 음성 인식이 비활성화되어 있습니다.');
+    return;
+  }
+
+  const currentOwner = getVoiceOwner();
+  if (currentOwner && currentOwner !== 'mic') {
+    console.warn(`⚠️ 현재 '${currentOwner}'이(가) 음성 사용 중이므로 마이크 시작 차단`);
+    return;
+  }
+
+  if (isListening) {
+    try {
+      await ExpoSpeechRecognitionModule.stop();
+    } catch (err) {
+      console.error('❌ 음성 인식 종료 오류:', err);
+    }
+  } else {
+    try {
+      setVoiceOwner('mic'); // ⬅️ 이 전에 검사함
+      recognizedTextRef.current = '';
+      await ExpoSpeechRecognitionModule.start({
+        lang: 'ko-KR',
+        continuous: true,
+        interimResults: true,
+      });
+      setIsListening(true);
+      setIsSpeaking(true);
+    } catch (err) {
+      console.error('❌ 음성 인식 시작 오류:', err);
+    }
+  }
+};
+
+
+  // ✅ 최종 인식 결과만 처리
+  useSpeechRecognitionEvent("result", (event) => {
+    if (!ENABLE_VOICE) return;
+    const transcript = event.results?.[0]?.transcript;
+    if (transcript) {
+      recognizedTextRef.current = transcript;
+    }
+  });
+
+  useSpeechRecognitionEvent("end", () => {
+  if (!ENABLE_VOICE) return;
+  if (getVoiceOwner() !== 'mic') return;
+
+  setIsListening(false);
+  clearVoiceOwner();
+
+  const finalText = recognizedTextRef.current;
+  if (finalText.trim()) {
+    console.log('🧠 최종 인식 텍스트:', finalText);
+
+    let gptTriggered = false; // ✅ 중복 방지용
+
+    Speech.speak(finalText, {
+      language: 'ko-KR',
+      onDone: () => {
+        if (!gptTriggered) {
+          console.log('✅ TTS 완료, GPT 전송');
+          gptTriggered = true;
+          sendToBackend(finalText);
+        }
+      },
+      onError: (err) => {
+        console.error('❌ TTS 오류:', err);
+        setIsSpeaking(false);
+      },
+    });
+
+    // ✅ fallback: onDone이 호출되지 않는 경우
+    setTimeout(() => {
+      if (!gptTriggered) {
+        console.warn('⏱️ TTS onDone 누락 → fallback 실행');
+        sendToBackend(finalText);
+      }
+    }, 3000); // 말하는 시간보다 충분히 긴 여유 시간
+  }
+});
+
+
+  useSpeechRecognitionEvent('error', (event) => {
+    console.error('❌ 음성 인식 에러:', event.error);
+    setIsListening(false);
+    setIsSpeaking(false);
+  });
+
   return {
     isSpeaking,
-  isListening,
-  handleMicPress: isListening ? stopRecognizing : startRecognizing,
+    isListening,
+    handleMicPress,
   };
 }
