@@ -52,27 +52,31 @@ export default function SignUpScreen() {
     setLoading(true);
 
     try {
-    // ✅ authService로 회원가입 요청
-    const result = await authService.signup(username, password, name);
-    const sessionId = result.id;
+      // ✅ authService로 회원가입 요청
+      const result = await authService.signup(username, password, name);
+      // const sessionId = result.id;   
 
-    Alert.alert('회원가입 완료', '이제 서비스를 이용하실 수 있습니다.');
+      const loginResult = await authService.login(username, password);
+      const token = loginResult.token;  
 
-    // 세션 저장 먼저
-useSessionStore.getState().setSession(sessionId, 'signed');
+      Alert.alert('회원가입 완료', '이제 서비스를 이용하실 수 있습니다.');
+      if (!token) throw new Error('로그인 토큰 없음');
 
-// 이후 페이지 이동만
-router.replace('/(tabs)');
+      // 세션 저장 먼저
+      useSessionStore.getState().setSession(token, 'signed');
 
-  } catch (error: any) {
-    console.error('❌ 회원가입 에러:', error);
-    Alert.alert('회원가입 실패', error.message || '네트워크 오류');
-  } finally {
-    setLoading(false);
-  }
-  };
+      // 이후 페이지 이동만
+      router.replace('/(tabs)');
 
-  const isPasswordMatch =
+    } catch (error: any) {
+      console.error('❌ 회원가입 에러:', error);
+      Alert.alert('회원가입 실패', error.message || '네트워크 오류');
+    } finally {
+      setLoading(false);
+    }
+    };
+
+    const isPasswordMatch =
     form.password.length > 0 && form.password === form.confirmPassword;
 
   return (

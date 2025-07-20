@@ -37,7 +37,6 @@ export default function MapScreen() {
     const fetchInitialRoute = async () => {
       try {
         const result = await routeService.searchRoute(
-          sessionId,
           parseFloat(startLat as string),
           parseFloat(startLon as string),
           parseFloat(destinationLat as string),
@@ -133,7 +132,6 @@ export default function MapScreen() {
     console.log('✅ 예 클릭 → 새 경로로 갱신');
     try {
       const newRoute = await routeService.searchRoute(
-        sessionId,
         location.latitude,
         location.longitude,
         parseFloat(destinationLat as string),

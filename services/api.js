@@ -1,4 +1,6 @@
-const BASE_URL = 'http://49.50.131.200:8080';
+const BASE_URL = 'http://10.0.2.2:8080';
+import { useSessionStore } from '@/contexts/sessionStore';
+const { sessionId, userState } = useSessionStore.getState(); 
 
 // 디버깅을 위한 로그 함수
 const debugLog = (tag, message, data = null) => {
@@ -15,7 +17,7 @@ const handleApiResponse = async (response) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    debugLog('API_ERROR', `HTTP ${response.status}`, { errorText });
+    debugLog('API_ERROR', `HTTP ${response.status}`, {errorText});
     throw new Error(`API 오류: ${response.status} - ${errorText}`);
   }
 
@@ -26,17 +28,20 @@ const handleApiResponse = async (response) => {
 
 // ✅ 1. 사용자 인증 서비스
 export const authService = {
-  signup: async (username, password, name) => {
+    signup: async (username, password, name) => {
     const url = `${BASE_URL}/users/signup`;
-    debugLog('SIGNUP_REQUEST', '📬 회원가입 요청', { username, password, name });
+    debugLog('SIGNUP_REQUEST', '📬 회원가입 요청1', { username, password, name });
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, password, name }),
+      body: JSON.stringify({ username, name, password }),
     });
+
+    debugLog('SIGNUP_RESPONSE', '📬 회원가입 응답');
+
 
     return await handleApiResponse(response);
   },
@@ -53,9 +58,12 @@ export const authService = {
       body: JSON.stringify({ username, password }),
     });
 
-    console.log(response.text());
+    const data = await handleApiResponse(response);
 
-    return await handleApiResponse(response);
+    console.log('로그인 성공:', data);
+
+    useSessionStore.getState().setSession(data.token, 'signed');
+    return data;
   },
 
   deleteAccount: async (userId, token) => {
@@ -70,6 +78,11 @@ export const authService = {
     });
 
     return await handleApiResponse(response);
+  },
+
+  logout: () => {
+    debugLog('LOGOUT', '로그아웃 요청 처리');
+    useSessionStore.getState().clearSession();
   },
 };
 
@@ -129,17 +142,23 @@ export const poiService = {
 
 // ✅ 3. GPT 질의 처리 서비스
 export const gptService = {
-  askQuestion: async (sessionId, text) => {
+  askQuestion: async (text) => {
+    const { sessionId, userState } = useSessionStore.getState();
     const url = `${BASE_URL}/nlp/chat`;
 
-    debugLog('GPT_QUESTION', '🎤 GPT 질의 시작', { sessionId, text });
+    debugLog('GPT_QUESTION', '🎤 GPT 질의 시작', { text });
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(userState === 'guest'
+        ? { 'X-Guest-Id': sessionId }
+        : { Authorization: sessionId }),
+    };
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ sessionId, text }),
+      headers,
+      body: JSON.stringify({ text }),
     });
 
     const data = await handleApiResponse(response);
@@ -158,7 +177,6 @@ const appendLog = (title, payload) => {
 
 export const routeService = {
   searchRoute: async (
-    sessionId,
     startLat,
     startLon,
     endLat,
@@ -167,6 +185,8 @@ export const routeService = {
     endName = '목적지'
   ) => {
     appendLog('ROUTE_SEARCH', '=== 경로 탐색 시작 ===');
+    const sessionId = useSessionStore.getState().sessionId;
+
     appendLog('ROUTE_PARAMS', {
       sessionId,
       startLat,
@@ -186,7 +206,6 @@ export const routeService = {
       appendLog('ROUTE_REQUEST_URL', { url });
 
       const requestBody = {
-        sessionId,
         startLat: parseFloat(startLat),
         startLon: parseFloat(startLon),
         endLat: parseFloat(endLat),
@@ -202,7 +221,9 @@ export const routeService = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Guest-Id': sessionId,
+          ...(userState === 'guest'
+            ? { 'X-Guest-Id': sessionId }
+            : { Authorization: sessionId }),
         },
         body: JSON.stringify(requestBody),
       });
@@ -259,5 +280,20 @@ export const routeService = {
       appendLog('HEALTH_ERROR', { message: error.message });
       throw error;
     }
+  },
+};
+
+export const userService = {
+  getMe: async (token) => {
+    const url = `${BASE_URL}/users/me`;
+
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: token,
+      },
+    });
+
+    return await handleApiResponse(response);
   },
 };
