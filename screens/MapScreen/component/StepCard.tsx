@@ -16,6 +16,7 @@ export default function StepCard({
   exitName,
   startLocation,
   routeName,
+  stationAccessibility
 }: any) {
   const renderIconByType = () => {
     switch (type) {
@@ -36,20 +37,50 @@ export default function StepCard({
 
       <Text style={styles.guidance}>
   {type === 'bus' && routeName && startLocation && exitName ? (
+  // 🚌 버스 UI
   <View style={styles.guidanceColumn}>
     <View style={styles.row}>
       <Text style={styles.guidanceLineBold}>{routeName}번</Text>
-      <Text style={styles.infoText}>
-          {liveInfo || instruction || '정보 없음'}
-        </Text>
-      </View>
+      <Text style={styles.infoText}>{liveInfo || instruction || '정보 없음'}</Text>
+    </View>
     <Text style={styles.guidanceLine}>{startLocation}</Text>
     <AntDesign name="down" size={18} color="#ff6600" style={{ marginVertical: 2 }} />
     <Text style={styles.guidanceLine}>{exitName}</Text>
   </View>
+) : type === 'subway' && routeName && startLocation && exitName ? (
+  // 🚇 지하철 UI
+  <View style={styles.guidanceColumn}>
+    <View style={styles.row}>
+      <Text style={[styles.guidanceLineBold, { color: '#FF5900' }]}>{routeName}</Text>
+      <Text style={styles.infoText}>{liveInfo || instruction || '정보 없음'}</Text>
+    </View>
+
+    {/* 출발역 ~ 도착역 */}
+    <Text style={styles.guidanceLine}>{startLocation}역</Text>
+    <AntDesign name="down" size={18} color="#ff6600" style={{ marginVertical: 2 }} />
+    <Text style={styles.guidanceLine}>{exitName}역</Text>
+
+    {(stationAccessibility?.elevatorExits || stationAccessibility?.escalatorExits) && (
+  <View style={{ marginTop: 6 }}>
+    {stationAccessibility.elevatorExits && (
+      <Text style={styles.accessInfo}>
+        🛗 {stationAccessibility.elevatorExits}
+      </Text>
+    )}
+    {stationAccessibility.escalatorExits && (
+      <Text style={styles.accessInfo}>
+        🛤 {stationAccessibility.escalatorExits}
+      </Text>
+    )}
+  </View>
+)}
+
+  </View>
 ) : (
+  // 🚶 도보 등
   <Text style={styles.guidance}>{fullGuidance || '이동 정보 없음'}</Text>
 )}
+
 
 </Text>
 
@@ -133,5 +164,11 @@ guidanceLineBold: {
   fontWeight : "bold",
   textAlign: 'center',
 },
+accessInfo: {
+  fontSize: 15,
+  color: '#666',
+  marginTop: 4,
+  fontWeight : "bold",
+}
 
 });

@@ -16,6 +16,7 @@ import { poiService, gptService } from '../services/api';
 import * as Speech from 'expo-speech';
 import { setVoiceOwner, getVoiceOwner, clearVoiceOwner } from '../hooks/VoiceOwner';
 import { useSessionStore } from '@/contexts/sessionStore';
+// import { useSpeechRecognitionEvent, ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
 
 const ENABLE_VOICE = false;
 
@@ -192,13 +193,13 @@ export default function Home() {
   //    const transcript = event.results?.[0]?.transcript;
   //    if (transcript) setRecognizedText(transcript);
   //  });
-  //
+  
   //  useSpeechRecognitionEvent("partialresult", (event) => {
   //    if (!ENABLE_VOICE) return;
   //    const transcript = event.text;
   //    if (transcript) setRecognizedText(transcript);
   //  });
-  //
+  
   //  useSpeechRecognitionEvent("end", () => {
   //    if (!ENABLE_VOICE) return;
   //    if (getVoiceOwner() !== 'home') return;
@@ -208,7 +209,7 @@ export default function Home() {
   //      handleVoiceSearch(recognizedText);
   //    }
   //  });
-  //
+  
   //  useSpeechRecognitionEvent("error", () => {
   //    if (!ENABLE_VOICE) return;
   //    setIsListening(false);

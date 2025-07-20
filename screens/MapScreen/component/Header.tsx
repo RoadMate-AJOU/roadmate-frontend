@@ -37,17 +37,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   destinationText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     marginLeft: 12,
     color: '#FF5900',
   },
   etaLabel: {
-    fontSize: 12,
+    fontSize: 20,
     color: '#555',
   },
   etaTime: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#222',
   },

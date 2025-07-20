@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Text, ScrollView, Modal, TouchableOpacity, Alert } from 'react-native';
 import Header from '../component/Header';
 import MapDisplay from '../component/MapDisplay';
-import DetailedDirection from '../component/DetailedDirections';
 import TransportSteps from '../component/TransportSteps';
 import MicButton from '../component/FloatingMicButton';
 import { fetchBusArrivalTime } from '../service/transportTime/fetchBusArrivalTime';
@@ -10,10 +9,13 @@ import { fetchSubwayArrivalTime } from '../service/transportTime/fetchSubwayArri
 import { useLocation } from '../../../contexts/LocationContext';
 import { routeService } from '../../../services/api';
 import { useLocalSearchParams } from 'expo-router';
+import { useSessionStore } from '@/contexts/sessionStore';
+import * as Speech from 'expo-speech';
+import { RouteContext } from '../model/RouteContext';
+
 
 export default function MapScreen() {
   const {
-    sessionId,
     destinationName,
     destinationLat,
     destinationLon,
@@ -28,6 +30,7 @@ export default function MapScreen() {
   const [showAlert, setShowAlert] = useState(false);
   const [answered, setAnswered] = useState(false);
   const { location, setLocation } = useLocation();
+   const { sessionId } = useSessionStore();
 
   // ✅ 초기 경로 요청
   useEffect(() => {
@@ -72,24 +75,59 @@ export default function MapScreen() {
   }, [firstBusGuide, firstSubwayGuide]);
 
   useEffect(() => {
-    if (!routeData) return;
+  if (!routeData) return;
 
-    const now = new Date();
-    const totalDuration = guides.reduce((sum, guide) => sum + (guide.time ?? 0), 0);
-    const extraMin = (busMin ?? 0) + (subwayMin ?? 0);
-    const etaDate = new Date(now.getTime() + (totalDuration + extraMin * 60) * 1000);
+  const now = new Date();
+  const totalDuration = guides.reduce((sum, guide) => sum + (guide.time ?? 0), 0);
 
-    const hours = etaDate.getHours().toString().padStart(2, '0');
-    const minutes = etaDate.getMinutes().toString().padStart(2, '0');
-    setEta(`${hours}:${minutes}`);
-  }, [busMin, subwayMin, routeData]);
+  const fallbackExtraMin = 0; // 실시간 정보 없을 때 추가 대기시간
+  const validBusMin = typeof busMin === 'number' ? busMin : fallbackExtraMin;
+  const validSubwayMin = typeof subwayMin === 'number' ? subwayMin : fallbackExtraMin;
+
+  const etaDate = new Date(now.getTime() + (totalDuration + (validBusMin + validSubwayMin) * 60) * 1000);
+
+  const hours = etaDate.getHours();
+  const minutes = etaDate.getMinutes();
+
+  // NaN 방지: hours, minutes 중 하나라도 NaN이면 fallback 사용
+  if (isNaN(hours) || isNaN(minutes)) {
+    const fallbackDate = new Date(now.getTime() + totalDuration * 1000);
+    const fh = fallbackDate.getHours().toString().padStart(2, '0');
+    const fm = fallbackDate.getMinutes().toString().padStart(2, '0');
+    setEta(`${fh}:${fm}`);
+  } else {
+    const formattedHours = hours.toString().padStart(2, '0');
+    const formattedMinutes = minutes.toString().padStart(2, '0');
+    setEta(`${formattedHours}:${formattedMinutes}`);
+  }
+}, [busMin, subwayMin, routeData]);
 
   const handleRouteOff = () => {
-    if (!answered) {
-      console.log('🚨 [MapScreen] 경로 이탈 콜백 수신됨');
-      setShowAlert(true);
-    }
-  };
+  if (!answered) {
+    console.log('🚨 [MapScreen] 경로 이탈 콜백 수신됨');
+
+    // ✅ 음성 출력
+    Speech.speak('경로를 이탈하셨습니다. 경로를 재탐색합니다.', {
+      language: 'ko-KR',
+    });
+
+    // ✅ Alert로 사용자에게 알림
+    Alert.alert(
+      '경로 이탈',
+      '경로를 이탈하셨습니다. 경로를 재탐색합니다.',
+      [
+        {
+          text: '확인',
+          onPress: handleYes,
+        },
+      ],
+      { cancelable: false }
+    );
+
+    setAnswered(true);
+  }
+};
+
 
   const handleYes = async () => {
     console.log('✅ 예 클릭 → 새 경로로 갱신');
@@ -116,13 +154,51 @@ export default function MapScreen() {
     setAnswered(true);
   };
 
-  const handleNo = () => {
-    console.log('❌ 아니요 클릭 → 기존 경로 유지');
-    setShowAlert(false);
-    setAnswered(true);
-  };
+    // 도착지 도달 감지용 상태
+  const [hasArrived, setHasArrived] = useState(false);
+
+  useEffect(() => {
+    if (!location || !destinationLat || !destinationLon || hasArrived) return;
+
+    const toRad = (value: number) => (value * Math.PI) / 180;
+    const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371e3; // Earth radius in meters
+      const φ1 = toRad(lat1);
+      const φ2 = toRad(lat2);
+      const Δφ = toRad(lat2 - lat1);
+      const Δλ = toRad(lon2 - lon1);
+
+      const a =
+        Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return R * c; // distance in meters
+    };
+
+    const distance = getDistance(
+      location.latitude,
+      location.longitude,
+      parseFloat(destinationLat as string),
+      parseFloat(destinationLon as string)
+    );
+
+    if (distance < 30) {
+      console.log('✅ 목적지 도착 확인됨!');
+      setHasArrived(true);
+
+      Speech.speak('경로 안내를 종료합니다. 피드백을 원하시면 마이크를 켜고 말씀해주세요.', {
+        language: 'ko-KR',
+      });
+
+      // 필요하다면 마이크 자동으로 켜거나 모달 띄우는 로직도 여기 추가 가능
+    }
+  }, [location, destinationLat, destinationLon, hasArrived]);
+
 
   return (
+    <RouteContext.Provider value={{ routeData, setRouteData }}>
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContainer}>
         <Header destination={destinationName} eta={eta} />
@@ -130,56 +206,20 @@ export default function MapScreen() {
         {routeData && (
           <>
             <MapDisplay onOffRouteDetected={handleRouteOff} routeData={routeData} isRoutingActive={true} />
-            <TransportSteps routeData={routeData} />
+            <TransportSteps />
           </>
         )}
 
-        <Modal visible={showAlert} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalBox}>
-              <Text style={styles.modalText}>경로에서 이탈한 것 같아요. 새로운 경로를 탐색할까요?</Text>
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.buttonYes} onPress={handleYes}>
-                  <Text style={styles.buttonText}>예</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.buttonNo} onPress={handleNo}>
-                  <Text style={styles.buttonText}>아니요</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </ScrollView>
       <MicButton />
     </View>
-  );
+  </RouteContext.Provider>
+);
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContainer: { paddingBottom: 120 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: '#00000088',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalBox: {
-    width: '85%',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-  },
-  modalText: {
-    fontSize: 16,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 20,
-  },
   buttonYes: {
     backgroundColor: '#FF6A00',
     paddingHorizontal: 20,

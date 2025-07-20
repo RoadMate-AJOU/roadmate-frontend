@@ -28,8 +28,7 @@
         {
           "image": "./assets/images/roadmate_logo.png",
           "imageWidth": 400,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "resizeMode": "contain"
         }
       ],
       [

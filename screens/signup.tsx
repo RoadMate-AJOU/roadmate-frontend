@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { authService } from '@/services/api';
+import { useSessionStore } from '@/contexts/sessionStore';
 
 export type FormState = {
   name: string;
@@ -18,7 +20,6 @@ export type FormState = {
   confirmPassword: string;
 };
 
-const API_BASE_URL = 'http://49.50.131.200:8080';
 
 export default function SignUpScreen() {
   const [form, setForm] = useState<FormState>({
@@ -51,39 +52,24 @@ export default function SignUpScreen() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, username, password }),
-      });
+    // ✅ authService로 회원가입 요청
+    const result = await authService.signup(username, password, name);
+    const sessionId = result.id;
 
-      const result = await response.json();
+    Alert.alert('회원가입 완료', '이제 서비스를 이용하실 수 있습니다.');
 
-      console.log('📦 응답 데이터:', result);
+    // 세션 저장 먼저
+useSessionStore.getState().setSession(sessionId, 'signed');
 
-      if (!response.ok) {
-        throw new Error(result.message || '회원가입 실패');
-      }
+// 이후 페이지 이동만
+router.replace('/(tabs)');
 
-      const { sessionId } = result;
-
-      Alert.alert('회원가입 완료', '이제 서비스를 이용하실 수 있습니다.');
-
-      router.replace({
-        pathname: '/(tabs)',
-        params: {
-          sessionId,
-          userState: 'signed',
-        },
-      });
-    } catch (error: any) {
-      console.error('❌ 회원가입 에러:', error);
-      Alert.alert('회원가입 실패', error.message || '네트워크 오류');
-    } finally {
-      setLoading(false);
-    }
+  } catch (error: any) {
+    console.error('❌ 회원가입 에러:', error);
+    Alert.alert('회원가입 실패', error.message || '네트워크 오류');
+  } finally {
+    setLoading(false);
+  }
   };
 
   const isPasswordMatch =

@@ -1,19 +1,15 @@
-import React, { useRef, useEffect } from 'react';
+// component/FloatingMicButton.tsx
+import React, { useRef, useState, useEffect } from 'react';
 import { Animated, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { styles } from '../style/FloatingMicButton.styles';
 import { useVoiceViewModel } from '../service/mic/FloatingMicViewModel';
+import { styles } from '../style/FloatingMicButton.styles';
 
-const ENABLE_VOICE = false;
 
 export default function FloatingMicButton() {
+  const { isSpeaking, isListening, handleMicPress } = useVoiceViewModel();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
-
-  const {
-    isSpeaking,
-    handleMicPress,
-  } = useVoiceViewModel(ENABLE_VOICE);
 
   useEffect(() => {
     if (isSpeaking) {
@@ -41,9 +37,12 @@ export default function FloatingMicButton() {
 
   return (
     <View style={styles.container}>
-      {isSpeaking && ENABLE_VOICE && (
-        <Animated.View style={[styles.glowEffect, { opacity: glowOpacity, shadowRadius: glowRadius }]} />
+      {isSpeaking && (
+        <Animated.View
+          style={[styles.glowEffect, { opacity: glowOpacity, shadowRadius: glowRadius }]}
+        />
       )}
+
       <Animated.View
         style={[
           styles.micButton,
@@ -54,7 +53,7 @@ export default function FloatingMicButton() {
         ]}
       >
         <TouchableOpacity onPress={handleMicPress} style={styles.touchArea} activeOpacity={0.8}>
-          <Ionicons name={isSpeaking ? 'stop' : 'mic'} size={28} color="white" />
+          <Ionicons name={isSpeaking ? 'stop' : 'mic'} size={36} color="white" />
         </TouchableOpacity>
       </Animated.View>
     </View>
