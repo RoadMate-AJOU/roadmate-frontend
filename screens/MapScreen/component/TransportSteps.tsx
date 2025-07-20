@@ -27,22 +27,29 @@ export default function TransportSteps() {
   }
 
   function speakStep(step) {
-    if (!step) return;
+  if (!step) return;
 
-    if (step.type === 'walk') {
-      Speech.speak(`${step.fullGuidance} 남았습니다`);
-    } else if(step.type === 'bus') {
-      const exit = extractExitName(step.fullGuidance, step.type);
-      if (exit) {
-        Speech.speak(`${exit}에서 하차하세요`);
-      }
-    }else {
-      const exit = extractExitName(step.fullGuidance, step.type);
-      if (exit) {
-        Speech.speak(`${exit}역에서 하차하세요`);
-      }
+  // 🔒 마이크 사용 중이면 음성 안내 생략
+  if (getVoiceOwner() === 'mic') {
+    console.log('🔇 [TransportSteps] 음성 인식 중이라 안내 음성 생략');
+    return;
+  }
+
+  if (step.type === 'walk') {
+    Speech.speak(`${step.fullGuidance} 남았습니다`);
+  } else if (step.type === 'bus') {
+    const exit = extractExitName(step.fullGuidance, step.type);
+    if (exit) {
+      Speech.speak(`${exit}에서 하차하세요`);
+    }
+  } else {
+    const exit = extractExitName(step.fullGuidance, step.type);
+    if (exit) {
+      Speech.speak(`${exit}역에서 하차하세요`);
     }
   }
+}
+
 
   useEffect(() => {
     console.log('🔁 props.routeData 변경 감지됨 → localRouteData 업데이트');
