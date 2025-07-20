@@ -6,7 +6,8 @@
       "@/*": ["./*"]
     },
     "resolveJsonModule": true,    // ✅ 추가
-    "esModuleInterop": true       // ✅ 추가
+    "esModuleInterop": true,       // ✅ 추가
+    "jsx": "react-native",
   },
   "include": [
     "**/*.ts",
