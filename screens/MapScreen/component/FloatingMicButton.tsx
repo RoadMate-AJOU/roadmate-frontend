@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Animated, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useVoiceViewModel } from '../service/mic/FloatingMicViewModel';
+import { useVoiceViewModel } from '../service/mic/FloatingMicButton';
 import { styles } from '../style/FloatingMicButton.styles';
 
 
