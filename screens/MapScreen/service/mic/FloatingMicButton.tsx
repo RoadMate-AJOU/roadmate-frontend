@@ -108,7 +108,7 @@ export default function FloatingMicButton() {
 
   const sendToBackend = async (text: string) => {
     try {
-      const json = await gptService.askQuestion({ sessionId, text });
+      const json = await gptService.askQuestion({ text });
       const { status, intent, responseMessage } = json;
 
       if (!responseMessage) {
