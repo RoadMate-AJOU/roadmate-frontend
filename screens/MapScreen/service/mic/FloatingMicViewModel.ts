@@ -26,7 +26,6 @@ export function useVoiceViewModel() {
   const sendToBackend = async (text: string) => {
     try {
       const json = await gptService.askQuestion({
-        sessionId,
         text,
       });
 

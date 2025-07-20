@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { userService, authService } from '../services/api';
+import { useSessionStore } from '../contexts/sessionStore';
 
 export default function MyPageScreen() {
   const router = useRouter();

@@ -54,7 +54,7 @@ export default function SignUpScreen() {
     try {
       // ✅ authService로 회원가입 요청
       const result = await authService.signup(username, password, name);
-      // const sessionId = result.id;
+      // const sessionId = result.id;   
 
       const loginResult = await authService.login(username, password);
       const token = loginResult.token;  

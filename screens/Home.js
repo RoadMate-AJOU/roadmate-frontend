@@ -67,7 +67,7 @@ export default function Home() {
 
     setIsSearching(true);
     try {
-      const destination = await gptService.askQuestion(sessionId, inputText);
+      const destination = await gptService.askQuestion(inputText);
       if (!destination) {
         Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 입력해주세요.');
         return;
@@ -97,7 +97,7 @@ export default function Home() {
 
     setIsSearching(true);
     try {
-      const destination = await gptService.askQuestion(sessionId, voiceText);
+      const destination = await gptService.askQuestion(voiceText);
       if (!destination) {
         Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 말씀해주세요.');
         return;

@@ -1,4 +1,5 @@
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = 'http://10.0.2.2:8080';
+import { useSessionStore } from '@/contexts/sessionStore';
 
 // 디버깅을 위한 로그 함수
 const debugLog = (tag, message, data = null) => {
@@ -15,7 +16,7 @@ const handleApiResponse = async (response) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    debugLog('API_ERROR', `HTTP ${response.status}`, { errorText });
+    debugLog('API_ERROR', `HTTP ${response.status}`, {errorText});
     throw new Error(`API 오류: ${response.status} - ${errorText}`);
   }
 
@@ -28,15 +29,18 @@ const handleApiResponse = async (response) => {
 export const authService = {
     signup: async (username, password, name) => {
     const url = `${BASE_URL}/users/signup`;
-    debugLog('SIGNUP_REQUEST', '📬 회원가입 요청', { username, password, name });
+    debugLog('SIGNUP_REQUEST', '📬 회원가입 요청1', { username, password, name });
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, password, name }),
+      body: JSON.stringify({ username, name, password }),
     });
+
+    debugLog('SIGNUP_RESPONSE', '📬 회원가입 응답');
+
 
     return await handleApiResponse(response);
   },
@@ -53,9 +57,9 @@ export const authService = {
       body: JSON.stringify({ username, password }),
     });
 
-    console.log(response.text());
-
     const data = await handleApiResponse(response);
+
+    console.log('로그인 성공:', data);
 
     useSessionStore.getState().setSession(data.token, 'signed');
     return data;

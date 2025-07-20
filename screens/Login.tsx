@@ -29,7 +29,7 @@ export default function LoginScreen() {
 
       console.log('🔐 로그인 응답:', data);
 
-      const sessionId = data?.id || data?.sessionId;
+      const sessionId = data?.token;
       if (!sessionId) throw new Error('세션 ID가 응답에 없습니다.');
 
       // ✅ sessionStore에 저장
