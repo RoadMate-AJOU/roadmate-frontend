@@ -147,7 +147,7 @@ export const gptService = {
 
     debugLog('GPT_RESULT', '🧠 목적지 추출 결과', { destination });
 
-    return destination;
+    return data;
   },
 };
 
