@@ -8,7 +8,7 @@ import {
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useLocation } from '../../../contexts/LocationContext';
-import * as Speech from 'expo-speech';
+
 
 const screenHeight = Dimensions.get('window').height;
 
@@ -159,7 +159,7 @@ if (isOffRoute(point, routeCoords)) {
       }
 
       i++;
-    }, 2000); // 🔁 기존 500ms → 1000ms로 유지
+    }, 1000); // 🔁 기존 500ms → 1000ms로 유지
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
