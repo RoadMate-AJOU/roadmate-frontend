@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useSessionStore } from './sessionStore';
 
 const apiClient = axios.create({
-  baseURL: '10.0.2.2:8080',
+  baseURL: '49.50.131.200:8080',
 });
 
 apiClient.interceptors.request.use((config) => {

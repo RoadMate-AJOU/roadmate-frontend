@@ -16,9 +16,9 @@ import { poiService, gptService } from '../services/api';
 import * as Speech from 'expo-speech';
 import { setVoiceOwner, getVoiceOwner, clearVoiceOwner } from '../hooks/VoiceOwner';
 import { useSessionStore } from '@/contexts/sessionStore';
-// import { useSpeechRecognitionEvent, ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
+import { useSpeechRecognitionEvent, ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
 
-const ENABLE_VOICE = false;
+const ENABLE_VOICE = true;
 
 export default function Home() {
   const [recognizedText, setRecognizedText] = useState('');
@@ -66,7 +66,10 @@ export default function Home() {
 
     setIsSearching(true);
     try {
-      const destination = await gptService.askQuestion(inputText);
+      const res = await gptService.askQuestion(inputText);
+const destination = res?.data?.destination;
+
+console.log('목적지: ',destination); // 👉 '서울역'
       if (!destination) {
         Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 입력해주세요.');
         return;
@@ -96,7 +99,10 @@ export default function Home() {
 
     setIsSearching(true);
     try {
-      const destination = await gptService.askQuestion(voiceText);
+      const res = await gptService.askQuestion(voiceText);
+const destination = res?.data?.destination;
+
+console.log('목적지: ',destination); // 👉 '서울역'
       if (!destination) {
         Alert.alert('오류', '목적지를 찾을 수 없습니다. 다시 말씀해주세요.');
         return;
@@ -187,32 +193,32 @@ export default function Home() {
     } catch (e) { }
   };
 
-  //  useSpeechRecognitionEvent("result", (event) => {
-  //    if (!ENABLE_VOICE) return;
-  //    const transcript = event.results?.[0]?.transcript;
-  //    if (transcript) setRecognizedText(transcript);
-  //  });
+   useSpeechRecognitionEvent("result", (event) => {
+     if (!ENABLE_VOICE) return;
+     const transcript = event.results?.[0]?.transcript;
+     if (transcript) setRecognizedText(transcript);
+   });
   
-  //  useSpeechRecognitionEvent("partialresult", (event) => {
-  //    if (!ENABLE_VOICE) return;
-  //    const transcript = event.text;
-  //    if (transcript) setRecognizedText(transcript);
-  //  });
+   useSpeechRecognitionEvent("partialresult", (event) => {
+     if (!ENABLE_VOICE) return;
+     const transcript = event.text;
+     if (transcript) setRecognizedText(transcript);
+   });
   
-  //  useSpeechRecognitionEvent("end", () => {
-  //    if (!ENABLE_VOICE) return;
-  //    if (getVoiceOwner() !== 'home') return;
-  //    setIsListening(false);
-  //    clearVoiceOwner();
-  //    if (recognizedText.trim()) {
-  //      handleVoiceSearch(recognizedText);
-  //    }
-  //  });
+   useSpeechRecognitionEvent("end", () => {
+     if (!ENABLE_VOICE) return;
+     if (getVoiceOwner() !== 'home') return;
+     setIsListening(false);
+     clearVoiceOwner();
+     if (recognizedText.trim()) {
+       handleVoiceSearch(recognizedText);
+     }
+   });
   
-  //  useSpeechRecognitionEvent("error", () => {
-  //    if (!ENABLE_VOICE) return;
-  //    setIsListening(false);
-  //  });
+   useSpeechRecognitionEvent("error", () => {
+     if (!ENABLE_VOICE) return;
+     setIsListening(false);
+   });
 
 
   return (

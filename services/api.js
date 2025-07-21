@@ -1,4 +1,4 @@
-const BASE_URL = 'http://10.0.2.2:8080';
+const BASE_URL = 'http://49.50.131.200:8080';
 import { useSessionStore } from '@/contexts/sessionStore';
 const { sessionId, userState } = useSessionStore.getState(); 
 
@@ -162,11 +162,9 @@ export const gptService = {
     });
 
     const data = await handleApiResponse(response);
-    const destination = data?.data?.destination;
+    // const destination = data?.data?.destination;
 
-    debugLog('GPT_RESULT', '🧠 목적지 추출 결과', { destination });
-
-    return destination;
+    return data;
   },
 };
 
