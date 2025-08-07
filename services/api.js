@@ -1,6 +1,6 @@
 const BASE_URL = 'http://49.50.131.200:8080';
 import { useSessionStore } from '@/contexts/sessionStore';
-const { sessionId, userState } = useSessionStore.getState(); 
+const { sessionId, userState } = useSessionStore.getState();
 
 // 디버깅을 위한 로그 함수
 const debugLog = (tag, message, data = null) => {
@@ -183,7 +183,7 @@ export const routeService = {
     endName = '목적지'
   ) => {
     appendLog('ROUTE_SEARCH', '=== 경로 탐색 시작 ===');
-    const sessionId = useSessionStore.getState().sessionId;
+   const { sessionId, userState } = useSessionStore.getState();
 
     appendLog('ROUTE_PARAMS', {
       sessionId,
@@ -214,17 +214,20 @@ export const routeService = {
       };
 
       debugLog('ROUTE_REQUEST_BODY', 'Request body', requestBody);
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(userState === 'guest'
+          ? { 'X-Guest-Id': sessionId }
+          : { Authorization: sessionId }),
+      };
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userState === 'guest'
-            ? { 'X-Guest-Id': sessionId }
-            : { Authorization: sessionId }),
-        },
+        headers,
         body: JSON.stringify(requestBody),
       });
+
+      console.log('🚀 요청 헤더:', headers);
 
       appendLog('ROUTE_RESPONSE_META', {
         status: response.status,

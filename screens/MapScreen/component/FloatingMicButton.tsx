@@ -56,7 +56,7 @@ export default function FloatingMicButton() {
         ]}
       >
         <TouchableOpacity disabled={isSpeaking} onPress={handleMicPress} style={styles.touchArea} activeOpacity={0.8}>
-          <Ionicons name={isSpeaking ? 'stop' : 'mic'} size={36} color="white" />
+          <Ionicons name={isSpeaking ? 'stop' : 'mic'} size={50} color="white" />
         </TouchableOpacity>
       </Animated.View>
     </View>

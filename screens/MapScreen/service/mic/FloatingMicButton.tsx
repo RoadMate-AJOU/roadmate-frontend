@@ -2,10 +2,10 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Animated, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from 'expo-speech-recognition';
+// import {
+//   ExpoSpeechRecognitionModule,
+//   useSpeechRecognitionEvent,
+// } from 'expo-speech-recognition';
 import { getVoiceOwner, setVoiceOwner, clearVoiceOwner } from '@/hooks/VoiceOwner';
 import { gptService } from '@/services/api';
 import { router } from 'expo-router';
@@ -45,66 +45,66 @@ export default function FloatingMicButton() {
     }
   }, [isSpeaking]);
 
-  const handleMicPress = async () => {
-    if (isListening) {
-      try {
-        await ExpoSpeechRecognitionModule.stop();
-      } catch (err) {
-        console.error('❌ 음성 인식 종료 오류:', err);
-      }
-    } else {
-      try {
-        setVoiceOwner('mic');
-        await ExpoSpeechRecognitionModule.start({
-          lang: 'ko-KR',
-          continuous: false,
-          interimResults: true,
-        });
-        setIsListening(true);
-        setIsSpeaking(true);
-      } catch (err) {
-        console.error('❌ 음성 인식 시작 오류:', err);
-      }
-    }
-  };
+//   const handleMicPress = async () => {
+//     if (isListening) {
+//       try {
+//         await ExpoSpeechRecognitionModule.stop();
+//       } catch (err) {
+//         console.error('❌ 음성 인식 종료 오류:', err);
+//       }
+//     } else {
+//       try {
+//         setVoiceOwner('mic');
+//         await ExpoSpeechRecognitionModule.start({
+//           lang: 'ko-KR',
+//           continuous: false,
+//           interimResults: true,
+//         });
+//         setIsListening(true);
+//         setIsSpeaking(true);
+//       } catch (err) {
+//         console.error('❌ 음성 인식 시작 오류:', err);
+//       }
+//     }
+//   };
 
-  useSpeechRecognitionEvent('result', (event) => {
-    const finalText = event.results?.[0]?.transcript;
-    if (finalText) {
-      recognizedTextRef.current = finalText;
-      console.log('✅ 인식된 텍스트:', finalText);
-    }
-  });
-
-  useSpeechRecognitionEvent('end', () => {
-    if (getVoiceOwner() !== 'mic') return;
-    setIsListening(false);
-    clearVoiceOwner();
-
-    const finalText = recognizedTextRef.current;
-    if (finalText) {
-      Speech.speak(finalText, {
-        language: 'ko-KR',
-        onDone: () => {
-          console.log('✅ TTS 완료, GPT 전송');
-          sendToBackend(finalText);
-        },
-        onError: (err) => {
-          console.error('❌ TTS 오류:', err);
-          setIsSpeaking(false);
-        },
-      });
-    } else {
-      console.log('⚠️ 인식된 텍스트 없음');
-      setIsSpeaking(false);
-    }
-  });
-
-  useSpeechRecognitionEvent('error', (event) => {
-    console.error('❌ 음성 인식 에러:', event.error);
-    setIsListening(false);
-    setIsSpeaking(false);
-  });
+//   useSpeechRecognitionEvent('result', (event) => {
+//     const finalText = event.results?.[0]?.transcript;
+//     if (finalText) {
+//       recognizedTextRef.current = finalText;
+//       console.log('✅ 인식된 텍스트:', finalText);
+//     }
+//   });
+//
+//   useSpeechRecognitionEvent('end', () => {
+//     if (getVoiceOwner() !== 'mic') return;
+//     setIsListening(false);
+//     clearVoiceOwner();
+//
+//     const finalText = recognizedTextRef.current;
+//     if (finalText) {
+//       Speech.speak(finalText, {
+//         language: 'ko-KR',
+//         onDone: () => {
+//           console.log('✅ TTS 완료, GPT 전송');
+//           sendToBackend(finalText);
+//         },
+//         onError: (err) => {
+//           console.error('❌ TTS 오류:', err);
+//           setIsSpeaking(false);
+//         },
+//       });
+//     } else {
+//       console.log('⚠️ 인식된 텍스트 없음');
+//       setIsSpeaking(false);
+//     }
+//   });
+//
+//   useSpeechRecognitionEvent('error', (event) => {
+//     console.error('❌ 음성 인식 에러:', event.error);
+//     setIsListening(false);
+//     setIsSpeaking(false);
+//   });
 
   const sendToBackend = async (text: string) => {
     try {
@@ -249,7 +249,7 @@ export default function FloatingMicButton() {
       ]}
     >
       <TouchableOpacity
-        onPress={handleMicPress}
+//         onPress={handleMicPress}
         style={styles.touchArea}
         activeOpacity={0.8}
       >
